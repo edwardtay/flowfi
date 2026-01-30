@@ -1,0 +1,14 @@
+{
+  "scripts": {
+    "build": "/home/edwardtay/.foundry/bin/forge build",
+    "test": "/home/edwardtay/.foundry/bin/forge test -vv"
+  },
+  "dependencies": {
+    "@uniswap/v4-core": "^1.0.2",
+    "@uniswap/v4-periphery": "^1.0.3",
+    "forge-std": "github:foundry-rs/forge-std"
+  },
+  "devDependencies": {
+    "solc": "^0.8.26"
+  }
+}
