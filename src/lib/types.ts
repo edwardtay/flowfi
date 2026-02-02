@@ -19,6 +19,41 @@ export type ParsedIntent = {
   url?: string         // for x402
 }
 
+/**
+ * Result of resolving an ENS name via resolve.ts.
+ *
+ * Includes the on-chain address plus all PayAgent-specific and standard text
+ * records that were readable at resolution time.
+ */
+export type ENSResolution = {
+  address: string | null
+  /** com.payagent.chain — receiver's preferred destination chain */
+  preferredChain?: string
+  /** com.payagent.token — receiver's preferred token */
+  preferredToken?: string
+  /** com.payagent.slippage — receiver's preferred max slippage (e.g. "0.5" = 0.5 %) */
+  preferredSlippage?: string
+  /** com.payagent.maxFee — max acceptable fee in USD (e.g. "1.00") */
+  maxFee?: string
+  /** Standard ENS avatar URL */
+  avatar?: string
+  /** Standard ENS description */
+  description?: string
+}
+
+/**
+ * Text-record payload for a payment-receipt subname.
+ * Used by src/lib/ens/receipts.ts.
+ */
+export type ReceiptTextRecords = {
+  'com.payagent.tx': string
+  'com.payagent.amount': string
+  'com.payagent.token': string
+  'com.payagent.chain': string
+  'com.payagent.recipient': string
+  'com.payagent.timestamp': string
+}
+
 export type Message = {
   id: string
   role: MessageRole
@@ -27,4 +62,9 @@ export type Message = {
   routes?: RouteOption[]
   txHash?: string
   timestamp: number
+  /** ENS profile data when the recipient was resolved from an ENS name */
+  ensProfile?: {
+    avatar?: string
+    description?: string
+  }
 }
