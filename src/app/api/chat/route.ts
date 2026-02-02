@@ -27,6 +27,10 @@ export async function POST(req: NextRequest) {
     // --- ENS Resolution ---
     let resolvedAddress: string | undefined
     let ensNote = ''
+    let ensAvatar: string | undefined
+    let ensDescription: string | undefined
+    let ensSlippage: number | undefined
+    let ensMaxFee: string | undefined
     if (intent.toAddress && intent.toAddress.endsWith('.eth')) {
       const ensResult = await resolveENS(intent.toAddress)
       if (!ensResult.address) {
@@ -37,13 +41,24 @@ export async function POST(req: NextRequest) {
       }
       resolvedAddress = ensResult.address
       ensNote = `Resolved ${intent.toAddress} → ${resolvedAddress}`
-      if (ensResult.preferredToken && ensResult.preferredChain) {
-        ensNote += ` (prefers ${ensResult.preferredToken} on ${ensResult.preferredChain})`
-      } else if (ensResult.preferredToken) {
-        ensNote += ` (prefers ${ensResult.preferredToken})`
-      } else if (ensResult.preferredChain) {
-        ensNote += ` (prefers ${ensResult.preferredChain})`
+
+      // Capture profile fields for the response
+      ensAvatar = ensResult.avatar
+      ensDescription = ensResult.description
+
+      // Build human-readable preference summary
+      const prefParts: string[] = []
+      if (ensResult.preferredToken) prefParts.push(ensResult.preferredToken)
+      if (ensResult.preferredChain) prefParts.push(`on ${ensResult.preferredChain}`)
+      if (ensResult.preferredSlippage) prefParts.push(`slippage ≤${ensResult.preferredSlippage}%`)
+      if (ensResult.maxFee) prefParts.push(`max fee $${ensResult.maxFee}`)
+      if (prefParts.length > 0) {
+        ensNote += ` (prefers ${prefParts.join(', ')})`
       }
+      if (ensDescription) {
+        ensNote += `\nProfile: ${ensDescription}`
+      }
+
       // Apply ENS payment preferences as defaults when not already specified
       if (ensResult.preferredChain && !intent.toChain) {
         intent.toChain = ensResult.preferredChain
@@ -51,6 +66,14 @@ export async function POST(req: NextRequest) {
       if (ensResult.preferredToken && !intent.toToken) {
         intent.toToken = ensResult.preferredToken
       }
+      // Parse slippage preference — use it only when the caller did not provide one
+      if (ensResult.preferredSlippage) {
+        const parsed = parseFloat(ensResult.preferredSlippage)
+        if (!Number.isNaN(parsed) && parsed > 0) {
+          ensSlippage = parsed / 100 // text record stores %, SDK expects fraction
+        }
+      }
+      ensMaxFee = ensResult.maxFee
     }
 
     // Build a human-readable agent response
@@ -119,6 +142,9 @@ export async function POST(req: NextRequest) {
       const fromChain = intent.fromChain || 'ethereum'
       const toChain = intent.toChain || intent.fromChain || 'ethereum'
 
+      // ENS slippage preference is used when the caller did not supply one
+      const effectiveSlippage = slippage ?? ensSlippage
+
       const lifiRoutes = await findRoutes({
         fromAddress: fromAddr,
         fromChain,
@@ -126,7 +152,7 @@ export async function POST(req: NextRequest) {
         fromToken: intent.fromToken,
         toToken: intent.toToken,
         amount: intent.amount,
-        slippage,
+        slippage: effectiveSlippage,
       })
 
       // For swap actions, check if a v4 hook route applies (same-chain stablecoin swaps)
@@ -141,14 +167,40 @@ export async function POST(req: NextRequest) {
             })
           : []
 
-      routes = [...v4Routes, ...lifiRoutes]
+      let allRoutes = [...v4Routes, ...lifiRoutes]
+
+      // If the recipient set a maxFee preference, filter out routes that exceed it
+      if (ensMaxFee) {
+        const maxFeeNum = parseFloat(ensMaxFee)
+        if (!Number.isNaN(maxFeeNum) && maxFeeNum > 0) {
+          const filtered = allRoutes.filter((r) => {
+            const feeNum = parseFloat(r.fee.replace(/[^0-9.]/g, ''))
+            return Number.isNaN(feeNum) || feeNum <= maxFeeNum
+          })
+          if (filtered.length > 0) {
+            allRoutes = filtered
+          } else {
+            // Keep all routes but warn the user
+            agentMessage += `\n\nNote: No routes found within the recipient's preferred max fee of $${ensMaxFee}. Showing all available routes.`
+          }
+        }
+      }
+
+      routes = allRoutes
     }
+
+    // Build ENS profile payload when we resolved an ENS name
+    const ensProfile =
+      ensAvatar || ensDescription
+        ? { avatar: ensAvatar, description: ensDescription }
+        : undefined
 
     return NextResponse.json({
       content: agentMessage,
       intent,
       routes,
       ...(resolvedAddress ? { resolvedAddress } : {}),
+      ...(ensProfile ? { ensProfile } : {}),
     })
   } catch (error: unknown) {
     console.error('Chat API error:', error)
