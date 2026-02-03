@@ -11,7 +11,7 @@ import {
   detectConsolidationOpportunity,
   buildConsolidationPlan,
 } from '@/lib/agent/consolidation'
-import { getMultichainName } from '@/lib/ens/multichain'
+import { getMultichainName, formatChainAddress } from '@/lib/ens/multichain'
 
 export async function POST(req: NextRequest) {
   const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
@@ -50,26 +50,20 @@ export async function POST(req: NextRequest) {
         })
       }
       resolvedAddress = ensResult.address
-      ensNote = `Resolved ${intent.toAddress} → ${resolvedAddress}`
-
-      // Capture profile fields for the response
       ensAvatar = ensResult.avatar
       ensDescription = ensResult.description
       ensPreferredToken = ensResult.preferredToken
       ensPreferredChain = ensResult.preferredChain
       ensNameResolved = intent.toAddress
 
-      // Build human-readable preference summary
+      // Build concise ENS note — prefer name over raw address
       const prefParts: string[] = []
       if (ensResult.preferredToken) prefParts.push(ensResult.preferredToken)
       if (ensResult.preferredChain) prefParts.push(`on ${ensResult.preferredChain}`)
       if (ensResult.preferredSlippage) prefParts.push(`slippage ≤${ensResult.preferredSlippage}%`)
       if (ensResult.maxFee) prefParts.push(`max fee $${ensResult.maxFee}`)
       if (prefParts.length > 0) {
-        ensNote += ` (prefers ${prefParts.join(', ')})`
-      }
-      if (ensDescription) {
-        ensNote += `\nProfile: ${ensDescription}`
+        ensNote = `${intent.toAddress} prefers ${prefParts.join(', ')}`
       }
 
       // Apply ENS payment preferences as defaults when not already specified
@@ -92,7 +86,12 @@ export async function POST(req: NextRequest) {
     // Build a human-readable agent response
     const cap = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : ''
     let agentMessage = ''
-    const displayAddress = resolvedAddress || intent.toAddress
+    // Prefer ENS name over raw address for display; use ERC-7828 format when cross-chain
+    const displayAddress = ensNameResolved
+      ? (intent.toChain && intent.toChain !== 'ethereum'
+          ? formatChainAddress(ensNameResolved, intent.toChain)
+          : ensNameResolved)
+      : intent.toAddress
     const displayFromChain = intent.fromChain ? cap(intent.fromChain) : ''
     const displayToChain = intent.toChain ? cap(intent.toChain) : ''
     switch (intent.action) {
@@ -279,10 +278,7 @@ export async function POST(req: NextRequest) {
         const chainAddr = await resolveChainAddress(ensNameResolved, finalToChainId)
         if (chainAddr) {
           resolvedAddress = chainAddr
-          ensNote = `Resolved ${ensNameResolved} → ${chainAddr} (${cap(toChain)} address via ENSIP-9)`
-          if (ensDescription) {
-            ensNote += `\nProfile: ${ensDescription}`
-          }
+          ensNote = `Sending to ${formatChainAddress(ensNameResolved, toChain)} via ENSIP-9`
         }
       }
 

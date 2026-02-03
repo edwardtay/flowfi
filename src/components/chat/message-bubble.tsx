@@ -87,6 +87,9 @@ export function MessageBubble({ message, onSelectRoute, onRefreshRoutes }: Messa
               {message.ensProfile.name && (
                 <span className="text-[13px] font-semibold text-[#1C1B18] truncate">
                   {message.ensProfile.name}
+                  {message.ensProfile.preferredChain && (
+                    <span className="text-[#9C9B93] font-normal">@{message.ensProfile.preferredChain}</span>
+                  )}
                 </span>
               )}
               {message.ensProfile.description && (

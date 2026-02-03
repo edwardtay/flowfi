@@ -320,11 +320,40 @@ export function ChatInterface() {
         value: txData.value ? BigInt(txData.value) : BigInt(0),
       })
 
-      // Success - show the txHash
+      // Post receipt and build success message
+      let successContent = 'Transaction submitted successfully!'
+      try {
+        const receiptRes = await fetch('/api/ens/receipts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            txHash: hash,
+            amount: intent.amount,
+            token: intent.toToken || intent.fromToken,
+            chain: intent.toChain || intent.fromChain || 'ethereum',
+            recipient: intent.toAddress || '',
+            from: address,
+          }),
+        })
+        if (receiptRes.ok) {
+          const { subname } = await receiptRes.json()
+          successContent += `\nReceipt: ${subname}`
+        }
+      } catch {
+        // Receipt storage is best-effort — don't block success
+      }
+
+      // Show payment request link when paying an ENS name
+      if (ensName && intent.amount && (intent.toToken || intent.fromToken)) {
+        const token = (intent.toToken || intent.fromToken).toLowerCase()
+        const recipientLabel = ensName.replace(/\.eth$/, '')
+        successContent += `\nPayment link: pay-${intent.amount}-${token}.${recipientLabel}.payagent.eth`
+      }
+
       const successMsg: Message = {
         id: crypto.randomUUID(),
         role: 'agent',
-        content: 'Transaction submitted successfully!',
+        content: successContent,
         txHash: hash,
         chainId,
         timestamp: Date.now(),

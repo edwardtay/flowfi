@@ -5,6 +5,7 @@ import {
   type Hex,
 } from 'viem'
 import { getPreference, getPreferenceByNode } from '@/lib/ens/store'
+import { getReceipt } from '@/lib/ens/receipt-store'
 import { signGatewayResponse } from '@/lib/ens/gateway-signer'
 
 /**
@@ -25,20 +26,44 @@ function decodeDnsName(dnsBytes: Uint8Array): string[] {
   return labels
 }
 
+type ParsedSubname =
+  | { type: 'preference'; name: string }
+  | { type: 'receipt'; txHash: string }
+  | { type: 'payment-request'; amount: string; token: string; recipient: string }
+  | null
+
+const PAYMENT_REQUEST_RE = /^pay-(\d+(?:\.\d+)?)-([a-zA-Z]+)$/i
+
 /**
- * Extract the user's ENS name from a wildcard DNS name.
+ * Parse a wildcard DNS name into its subname type.
  *
- * For "alice.payagent.eth" → first label "alice" → look up "alice.eth"
- * For "payagent.eth" (parent) → no subname, fall back to node-based lookup
+ * Supports:
+ *   - "alice.payagent.eth" → preference lookup for "alice.eth"
+ *   - "tx-0xabc.payments.payagent.eth" → receipt lookup for txHash "0xabc"
+ *   - "pay-10-usdc.alice.payagent.eth" → payment request (amount=10, token=USDC, recipient=alice.eth)
  */
-function extractUserName(labels: string[]): string | null {
-  // If there are 3+ labels (subname.parent.tld), the first label is the user identifier
-  if (labels.length >= 3) {
-    // Reconstruct the user's ENS name: first label + ".eth"
-    return `${labels[0]}.eth`
+function parseSubname(labels: string[]): ParsedSubname {
+  if (labels.length < 3) return null
+
+  const firstLabel = labels[0]
+
+  // Receipt subname: tx-{hash}.payments.payagent.eth (4+ labels, first starts with "tx-")
+  if (firstLabel.startsWith('tx-') && labels.length >= 4) {
+    const txHash = firstLabel.slice(3) // remove "tx-" prefix
+    return { type: 'receipt', txHash }
   }
-  // Parent name (e.g. "payagent.eth") — no user-specific subname
-  return null
+
+  // Payment request: pay-{amount}-{token}.{recipient}.payagent.eth (4+ labels)
+  if (labels.length >= 4) {
+    const match = firstLabel.match(PAYMENT_REQUEST_RE)
+    if (match) {
+      const recipient = `${labels[1]}.eth`
+      return { type: 'payment-request', amount: match[1], token: match[2].toUpperCase(), recipient }
+    }
+  }
+
+  // Default: preference lookup — first label is the user identifier
+  return { type: 'preference', name: `${firstLabel}.eth` }
 }
 
 /**
@@ -107,25 +132,44 @@ export async function GET(
       return NextResponse.json({ error: 'Failed to decode resolver calldata' }, { status: 400 })
     }
 
-    // Look up preference — try by user name first (wildcard), fall back to node
-    let preference: { token: string; chain: string } | null = null
-
-    const userName = extractUserName(labels)
-    if (userName) {
-      preference = await getPreference(userName)
-    }
-
-    // Fall back to node-based lookup for direct resolution
-    if (!preference) {
-      preference = await getPreferenceByNode(node)
-    }
-
+    // Parse the subname to determine the type of lookup
+    const parsed = parseSubname(labels)
     let resultValue = ''
-    if (preference) {
-      if (key === 'com.payagent.token') {
-        resultValue = preference.token
-      } else if (key === 'com.payagent.chain') {
-        resultValue = preference.chain
+
+    if (parsed?.type === 'receipt') {
+      // Receipt lookup: return text record values from stored receipt
+      const receipt = await getReceipt(parsed.txHash)
+      if (receipt && key in receipt) {
+        resultValue = receipt[key as keyof typeof receipt]
+      }
+    } else if (parsed?.type === 'payment-request') {
+      // Payment request: dynamically generate values from the name structure
+      if (key === 'com.payagent.amount') {
+        resultValue = parsed.amount
+      } else if (key === 'com.payagent.token') {
+        resultValue = parsed.token
+      } else if (key === 'com.payagent.recipient') {
+        resultValue = parsed.recipient
+      }
+    } else {
+      // Preference lookup — try by user name first (wildcard), fall back to node
+      let preference: { token: string; chain: string } | null = null
+
+      if (parsed?.type === 'preference') {
+        preference = await getPreference(parsed.name)
+      }
+
+      // Fall back to node-based lookup for direct resolution
+      if (!preference) {
+        preference = await getPreferenceByNode(node)
+      }
+
+      if (preference) {
+        if (key === 'com.payagent.token') {
+          resultValue = preference.token
+        } else if (key === 'com.payagent.chain') {
+          resultValue = preference.chain
+        }
       }
     }
 
