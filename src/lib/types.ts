@@ -12,7 +12,7 @@ export type RouteOption = {
 }
 
 export type ParsedIntent = {
-  action: 'transfer' | 'swap' | 'deposit' | 'yield' | 'pay_x402'
+  action: 'transfer' | 'swap' | 'deposit' | 'yield' | 'pay_x402' | 'consolidate'
   amount: string
   fromToken: string
   toToken: string
@@ -39,6 +39,8 @@ export type ENSResolution = {
   preferredSlippage?: string
   /** com.payagent.maxFee — max acceptable fee in USD (e.g. "1.00") */
   maxFee?: string
+  /** com.payagent.autoconsolidate — whether to auto-consolidate deposits (e.g. "true") */
+  autoConsolidate?: string
   /** Standard ENS avatar URL */
   avatar?: string
   /** Standard ENS description */
@@ -65,10 +67,13 @@ export type Message = {
   intent?: ParsedIntent
   routes?: RouteOption[]
   txHash?: string
+  chainId?: number
   timestamp: number
   /** ENS profile data when the recipient was resolved from an ENS name */
   ensProfile?: {
     avatar?: string
     description?: string
   }
+  /** User's ENS name, used when executing ENS preference writes */
+  ensName?: string
 }

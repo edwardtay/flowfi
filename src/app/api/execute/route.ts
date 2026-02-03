@@ -1,16 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getTransactionData } from '@/lib/routing/execute-route'
+import { buildSetPreferenceTransaction } from '@/lib/ens/write'
 import type { ParsedIntent } from '@/lib/types'
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { fromAddress, intent, slippage } = body as {
+    const { routeId, fromAddress, intent, slippage, ensName } = body as {
       routeId: string
       fromAddress: string
       intent: ParsedIntent
       slippage?: number
+      ensName?: string
     }
+
+    // ENS preference write — returns resolver multicall tx directly
+    if (routeId === 'ens-preference') {
+      if (!ensName) {
+        return NextResponse.json(
+          { error: 'Missing ensName for ENS preference write' },
+          { status: 400 },
+        )
+      }
+      const txData = await buildSetPreferenceTransaction(
+        ensName,
+        intent?.toToken || 'USDC',
+        intent?.toChain || 'base',
+      )
+      return NextResponse.json(txData)
+    }
+
+    // Detect v4 route and pass provider hint
+    const provider = routeId?.startsWith('v4-') ? 'Uniswap v4' : undefined
 
     if (!fromAddress || !intent) {
       return NextResponse.json(
@@ -38,7 +59,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const txData = await getTransactionData(intent, fromAddress, slippage)
+    const txData = await getTransactionData(intent, fromAddress, slippage, provider)
 
     return NextResponse.json(txData)
   } catch (error: unknown) {

@@ -4,7 +4,14 @@ import { resolveENS } from '@/lib/ens/resolve'
 import { probeX402 } from '@/lib/x402/client'
 import { findRoutes, findComposerRoutes } from '@/lib/routing/lifi-router'
 import { findV4Routes } from '@/lib/routing/v4-router'
+import { getTokenAddress, getPreferredChainForToken, CHAIN_MAP, CHAIN_ID_TO_NAME } from '@/lib/routing/tokens'
 import { isRateLimited } from '@/lib/rate-limit'
+import {
+  getMultiChainBalances,
+  detectConsolidationOpportunity,
+  buildConsolidationPlan,
+} from '@/lib/agent/consolidation'
+import { getMultichainName } from '@/lib/ens/multichain'
 
 export async function POST(req: NextRequest) {
   const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
@@ -77,21 +84,104 @@ export async function POST(req: NextRequest) {
     }
 
     // Build a human-readable agent response
+    const cap = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : ''
     let agentMessage = ''
     const displayAddress = resolvedAddress || intent.toAddress
+    const displayFromChain = intent.fromChain ? cap(intent.fromChain) : ''
+    const displayToChain = intent.toChain ? cap(intent.toChain) : ''
     switch (intent.action) {
       case 'transfer':
-        agentMessage = `I'll transfer ${intent.amount} ${intent.fromToken}${displayAddress ? ` to ${displayAddress}` : ''}${intent.toChain ? ` on ${intent.toChain}` : ''}. Finding the best route...`
+        agentMessage = `I'll transfer ${intent.amount} ${intent.fromToken}${displayAddress ? ` to ${displayAddress}` : ''}${displayToChain ? ` on ${displayToChain}` : ''}. Finding the best route...`
         break
       case 'swap':
-        agentMessage = `I'll swap ${intent.amount} ${intent.fromToken} to ${intent.toToken}${intent.toChain ? ` on ${intent.toChain}` : ''}. Comparing rates...`
+        agentMessage = `I'll swap ${intent.amount} ${intent.fromToken}${displayFromChain ? ` on ${displayFromChain}` : ''} to ${intent.toToken}${displayToChain ? ` on ${displayToChain}` : ''}. Comparing rates...`
         break
       case 'deposit':
-        agentMessage = `I'll deposit ${intent.amount} ${intent.fromToken} into ${intent.vaultProtocol || 'a lending'} vault${intent.toChain ? ` on ${intent.toChain}` : ''}. Finding Composer routes...`
+        agentMessage = `I'll deposit ${intent.amount} ${intent.fromToken} into ${intent.vaultProtocol || 'a lending'} vault${displayToChain ? ` on ${displayToChain}` : ''}. Finding Composer routes...`
         break
       case 'yield':
-        agentMessage = `I'll find the best yield for ${intent.amount} ${intent.fromToken}${intent.toChain ? ` on ${intent.toChain}` : ''} via ${intent.vaultProtocol || 'available'} vaults. Finding Composer routes...`
+        agentMessage = `I'll find the best yield for ${intent.amount} ${intent.fromToken}${displayToChain ? ` on ${displayToChain}` : ''} via ${intent.vaultProtocol || 'available'} vaults. Finding Composer routes...`
         break
+      case 'consolidate': {
+        if (!userAddress) {
+          agentMessage = 'Please connect your wallet first so I can scan your balances for consolidation.'
+          break
+        }
+        const consolidateAddr = userAddress
+        const balances = await getMultiChainBalances(consolidateAddr)
+
+        // Use ENS config if we resolved one, otherwise defaults
+        const consolidateConfig = {
+          address: resolvedAddress || consolidateAddr,
+          preferredChain: intent.toChain || 'base',
+          preferredToken: intent.toToken || 'USDC',
+        }
+
+        const opportunities = detectConsolidationOpportunity(balances, consolidateConfig)
+        const plan = buildConsolidationPlan(opportunities, consolidateConfig)
+
+        if (opportunities.length === 0) {
+          agentMessage = `All balances already match ${consolidateConfig.preferredToken} on ${cap(consolidateConfig.preferredChain)}. Nothing to consolidate.`
+        } else {
+          agentMessage = `Found ${opportunities.length} tokens to consolidate to ${consolidateConfig.preferredToken} on ${cap(consolidateConfig.preferredChain)}.\n\n`
+          for (const step of plan.steps) {
+            agentMessage += `• ${step.description}\n`
+          }
+          if (plan.totalSavings !== '$0.00') {
+            agentMessage += `\nEstimated savings vs standard fees: ${plan.totalSavings}`
+          }
+          if (plan.goldConversion) {
+            agentMessage += `\n\nGold conversion: $${plan.goldConversion.amountUSDC} USDC → ${plan.goldConversion.estimatedPAXG} PAXG at $${plan.goldConversion.goldPriceUSD}/oz`
+          }
+        }
+
+        // Build route options from plan steps
+        const consolidateRoutes = plan.steps
+          .filter((s) => s.executable)
+          .map((s, i) => ({
+            id: `consolidate-${i}`,
+            path: `${s.from.token} → ${s.to.token} via ${s.provider}`,
+            fee: s.fee,
+            estimatedTime: s.estimatedTime,
+            provider: s.provider,
+            routeType: 'standard' as const,
+          }))
+
+        // Reverse-resolve ENS name and prepend preference write route
+        let ensName: string | undefined
+        try {
+          ensName = (await getMultichainName(consolidateAddr, 1)) ?? undefined
+        } catch {
+          // Reverse resolution failed — skip ENS preference step
+        }
+
+        if (ensName) {
+          const prefToken = consolidateConfig.preferredToken
+          const prefChain = consolidateConfig.preferredChain
+          agentMessage = `Update ${ensName} preference to ${prefToken} on ${cap(prefChain)}\n\n${agentMessage}`
+          consolidateRoutes.unshift({
+            id: 'ens-preference',
+            path: `Set ${prefToken} on ${cap(prefChain)} on ${ensName}`,
+            fee: 'Gas only',
+            estimatedTime: '~15s',
+            provider: 'ENS',
+            routeType: 'standard' as const,
+          })
+        }
+
+        if (ensNote) {
+          agentMessage = `${ensNote}\n\n${agentMessage}`
+        }
+
+        return NextResponse.json({
+          content: agentMessage,
+          intent,
+          routes: consolidateRoutes.length > 0 ? consolidateRoutes : undefined,
+          ...(resolvedAddress ? { resolvedAddress } : {}),
+          ...(ensAvatar || ensDescription ? { ensProfile: { avatar: ensAvatar, description: ensDescription } } : {}),
+          ...(ensName ? { ensName } : {}),
+        })
+      }
       case 'pay_x402': {
         if (intent.url) {
           // Construct full URL if relative path provided
@@ -149,7 +239,23 @@ export async function POST(req: NextRequest) {
       // --- Standard LI.FI routes for transfers and swaps ---
       const fromAddr = userAddress || '0x0000000000000000000000000000000000000000'
       const fromChain = intent.fromChain || 'ethereum'
-      const toChain = intent.toChain || intent.fromChain || 'ethereum'
+      let toChain = intent.toChain || intent.fromChain || 'ethereum'
+
+      // Auto-resolve destination chain if toToken isn't available there
+      const toChainId = CHAIN_MAP[toChain] || CHAIN_MAP.ethereum
+      if (!getTokenAddress(intent.toToken, toChainId)) {
+        const bestChainId = getPreferredChainForToken(intent.toToken)
+        if (bestChainId && CHAIN_ID_TO_NAME[bestChainId]) {
+          toChain = CHAIN_ID_TO_NAME[bestChainId]
+          intent.toChain = toChain
+          // Rebuild agent message with correct destination
+          if (intent.action === 'swap') {
+            agentMessage = `I'll swap ${intent.amount} ${intent.fromToken}${fromChain !== toChain ? ` on ${cap(fromChain)}` : ''} to ${intent.toToken} on ${cap(toChain)}. Comparing rates...`
+          } else {
+            agentMessage = `I'll transfer ${intent.amount} ${intent.fromToken}${displayAddress ? ` to ${displayAddress}` : ''} on ${cap(toChain)}. Finding the best route...`
+          }
+        }
+      }
 
       // ENS slippage preference is used when the caller did not supply one
       const effectiveSlippage = slippage ?? ensSlippage
