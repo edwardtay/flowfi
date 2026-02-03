@@ -147,7 +147,9 @@ export async function POST(req: NextRequest) {
             routeType: 'standard' as const,
           }))
 
-        // Reverse-resolve ENS name and prepend preference write route
+        // Reverse-resolve ENS name — if found, return only the ENS
+        // preference write as the immediate first step. Consolidation
+        // routes will be shown after the preference is set.
         let ensName: string | undefined
         try {
           ensName = (await getMultichainName(consolidateAddr, 1)) ?? undefined
@@ -158,14 +160,23 @@ export async function POST(req: NextRequest) {
         if (ensName) {
           const prefToken = consolidateConfig.preferredToken
           const prefChain = consolidateConfig.preferredChain
-          agentMessage = `Update ${ensName} preference to ${prefToken} on ${cap(prefChain)}\n\n${agentMessage}`
-          consolidateRoutes.unshift({
-            id: 'ens-preference',
-            path: `Set ${prefToken} on ${cap(prefChain)} on ${ensName}`,
-            fee: 'Gas only',
-            estimatedTime: '~15s',
-            provider: 'ENS',
-            routeType: 'standard' as const,
+
+          return NextResponse.json({
+            content: `Set ${ensName} to receive ${prefToken} on ${cap(prefChain)}.\n\nAnyone paying ${ensName} will auto-route to your preferred token.`,
+            intent,
+            routes: [
+              {
+                id: 'ens-preference',
+                path: `Set ${prefToken} on ${cap(prefChain)} on ${ensName}`,
+                fee: 'Gas only',
+                estimatedTime: '~15s',
+                provider: 'ENS',
+                routeType: 'standard' as const,
+              },
+            ],
+            ...(resolvedAddress ? { resolvedAddress } : {}),
+            ...(ensAvatar || ensDescription ? { ensProfile: { avatar: ensAvatar, description: ensDescription } } : {}),
+            ensName,
           })
         }
 
@@ -179,7 +190,6 @@ export async function POST(req: NextRequest) {
           routes: consolidateRoutes.length > 0 ? consolidateRoutes : undefined,
           ...(resolvedAddress ? { resolvedAddress } : {}),
           ...(ensAvatar || ensDescription ? { ensProfile: { avatar: ensAvatar, description: ensDescription } } : {}),
-          ...(ensName ? { ensName } : {}),
         })
       }
       case 'pay_x402': {
