@@ -31,7 +31,7 @@ export default function LandingPage() {
           </h1>
           <p className="text-[#6B6A63] mb-8">
             No more scattered tokens. No manual swaps. No idle funds.<br />
-            <span className="text-[#1C1B18]">One link. Auto-convert. Earn yield.</span>
+            <span className="text-[#1C1B18]">One link. Auto-convert. Done.</span>
           </p>
           <Link
             href="/app"
