@@ -19,9 +19,8 @@ const YIELD_ROUTER_ABI = [
   },
 ] as const
 
-// Deployed YieldRouter address on Base
-// TODO: Update after deployment
-export const YIELD_ROUTER_ADDRESS: `0x${string}` = '0x0000000000000000000000000000000000000000'
+// Deployed YieldRouter address on Base Mainnet
+export const YIELD_ROUTER_ADDRESS: `0x${string}` = '0xE132329262224f5EEd5BCA1ee64768cf437308d8'
 
 // Base chain ID for YieldRoute (always deposits to Base)
 const BASE_CHAIN_ID = CHAIN_MAP.base
