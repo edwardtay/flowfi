@@ -1088,7 +1088,7 @@ export function ReceiverDashboard() {
                 DeFi Strategy
               </CardTitle>
               <p className="text-sm text-[#6B6960]">
-                Choose how incoming payments are handled
+                What happens to incoming payments
               </p>
             </div>
             {(currentStrategy || currentStrategies) && (
@@ -1096,32 +1096,8 @@ export function ReceiverDashboard() {
             )}
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Mode Toggle */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setUseMultiStrategy(false)}
-              className={`flex-1 p-3 rounded-lg border-2 transition-all text-sm font-medium ${
-                !useMultiStrategy
-                  ? 'border-[#1C1B18] bg-[#FAFAF8]'
-                  : 'border-[#E4E2DC] hover:border-[#C9C7BF]'
-              }`}
-            >
-              Single Strategy
-            </button>
-            <button
-              onClick={() => setUseMultiStrategy(true)}
-              className={`flex-1 p-3 rounded-lg border-2 transition-all text-sm font-medium ${
-                useMultiStrategy
-                  ? 'border-[#1C1B18] bg-[#FAFAF8]'
-                  : 'border-[#E4E2DC] hover:border-[#C9C7BF]'
-              }`}
-            >
-              Multi-Strategy Split
-            </button>
-          </div>
-
-          {/* Single Strategy Mode */}
+        <CardContent className="space-y-3">
+          {/* Strategy Options */}
           {!useMultiStrategy && (
             <>
               <button
@@ -1407,7 +1383,7 @@ export function ReceiverDashboard() {
                 Yield Vault
               </CardTitle>
               <p className="text-sm text-[#6B6960]">
-                Choose a vault based on your risk preference
+                Where your USDC earns yield
               </p>
             </div>
             {currentVault && !vaultChanged && (
@@ -1415,137 +1391,60 @@ export function ReceiverDashboard() {
             )}
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Low Risk Section */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-2 h-2 rounded-full bg-[#22C55E]" />
-              <span className="text-xs font-medium text-[#6B6960] uppercase tracking-wide">Low Risk</span>
-            </div>
-            <div className="space-y-2">
-              {VAULT_OPTIONS.filter(v => v.risk === 'low' && v.id !== 'none').map((vault) => (
-                <button
-                  key={vault.id}
-                  onClick={() => setSelectedVaultId(vault.id)}
-                  className={`w-full p-3 rounded-xl border-2 transition-all cursor-pointer text-left flex items-center justify-between ${
-                    selectedVaultId === vault.id
-                      ? 'border-[#22C55E] bg-[#F0FDF4]'
-                      : 'border-[#E4E2DC] hover:border-[#C9C7BF]'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-[#EDF5F0] flex items-center justify-center">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-[#22C55E]">
-                        <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2"/>
-                        <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm text-[#1C1B18]">{vault.name}</p>
-                      <p className="text-xs text-[#6B6960]">{vault.description}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-[#22C55E]">{vaultApys[vault.id] ?? '—'}%</p>
-                    <p className="text-xs text-[#6B6960]">APY</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Medium Risk Section */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-2 h-2 rounded-full bg-[#F59E0B]" />
-              <span className="text-xs font-medium text-[#6B6960] uppercase tracking-wide">Medium Risk · Higher Yield</span>
-            </div>
-            <div className="space-y-2">
-              {VAULT_OPTIONS.filter(v => v.risk === 'medium').map((vault) => (
-                <button
-                  key={vault.id}
-                  onClick={() => setSelectedVaultId(vault.id)}
-                  className={`w-full p-3 rounded-xl border-2 transition-all cursor-pointer text-left flex items-center justify-between ${
-                    selectedVaultId === vault.id
-                      ? 'border-[#F59E0B] bg-[#FFFBEB]'
-                      : 'border-[#E4E2DC] hover:border-[#C9C7BF]'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-[#FEF3C7] flex items-center justify-center">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-[#F59E0B]">
-                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm text-[#1C1B18]">{vault.name}</p>
-                      <p className="text-xs text-[#6B6960]">{vault.description}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-[#F59E0B]">{vaultApys[vault.id] ?? '—'}%</p>
-                    <p className="text-xs text-[#6B6960]">APY</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* High Risk Section */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-2 h-2 rounded-full bg-[#EF4444]" />
-              <span className="text-xs font-medium text-[#6B6960] uppercase tracking-wide">Higher Risk · Aggressive</span>
-            </div>
-            <div className="space-y-2">
-              {VAULT_OPTIONS.filter(v => v.risk === 'high').map((vault) => (
-                <button
-                  key={vault.id}
-                  onClick={() => setSelectedVaultId(vault.id)}
-                  className={`w-full p-3 rounded-xl border-2 transition-all cursor-pointer text-left flex items-center justify-between ${
-                    selectedVaultId === vault.id
-                      ? 'border-[#EF4444] bg-[#FEF2F2]'
-                      : 'border-[#E4E2DC] hover:border-[#C9C7BF]'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-[#FEE2E2] flex items-center justify-center">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-[#EF4444]">
-                        <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm text-[#1C1B18]">{vault.name}</p>
-                      <p className="text-xs text-[#6B6960]">{vault.description}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-[#EF4444]">{vaultApys[vault.id] ?? '—'}%</p>
-                    <p className="text-xs text-[#6B6960]">APY</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* No Yield Option */}
+        <CardContent className="space-y-3">
+          {/* Aave - Safe option */}
           <button
-            onClick={() => setSelectedVaultId('none')}
-            className={`w-full p-3 rounded-xl border-2 transition-all cursor-pointer text-left flex items-center justify-between ${
-              selectedVaultId === 'none'
-                ? 'border-[#6B7280] bg-[#F9FAFB]'
+            onClick={() => setSelectedVaultId('aave-usdc')}
+            className={`w-full p-4 rounded-xl border-2 transition-all cursor-pointer text-left ${
+              selectedVaultId === 'aave-usdc'
+                ? 'border-[#22C55E] bg-[#F0FDF4]'
                 : 'border-[#E4E2DC] hover:border-[#C9C7BF]'
             }`}
           >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-[#F3F4F6] flex items-center justify-center">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-[#6B7280]">
-                  <path d="M21 12H3M21 12L15 6M21 12L15 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-[#EDF5F0] flex items-center justify-center">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-[#22C55E]">
+                    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2"/>
+                    <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-medium text-[#1C1B18]">Aave</p>
+                  <p className="text-sm text-[#6B6960]">Battle-tested · Recommended</p>
+                </div>
               </div>
-              <div>
-                <p className="font-medium text-sm text-[#1C1B18]">No Yield</p>
-                <p className="text-xs text-[#6B6960]">Keep USDC liquid in wallet</p>
+              <div className="text-right">
+                <p className="font-semibold text-[#22C55E]">{vaultApys['aave-usdc'] ?? '~4'}%</p>
+                <p className="text-xs text-[#6B6960]">APY</p>
+              </div>
+            </div>
+          </button>
+
+          {/* Morpho - Optimized option */}
+          <button
+            onClick={() => setSelectedVaultId('gauntlet-prime')}
+            className={`w-full p-4 rounded-xl border-2 transition-all cursor-pointer text-left ${
+              selectedVaultId === 'gauntlet-prime'
+                ? 'border-[#F59E0B] bg-[#FFFBEB]'
+                : 'border-[#E4E2DC] hover:border-[#C9C7BF]'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-[#FEF3C7] flex items-center justify-center">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-[#F59E0B]">
+                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-medium text-[#1C1B18]">Morpho</p>
+                  <p className="text-sm text-[#6B6960]">Higher yield · Gauntlet curated</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="font-semibold text-[#F59E0B]">{vaultApys['gauntlet-prime'] ?? '~5'}%</p>
+                <p className="text-xs text-[#6B6960]">APY</p>
               </div>
             </div>
           </button>
@@ -1553,21 +1452,21 @@ export function ReceiverDashboard() {
           {/* Custom vault option */}
           <button
             onClick={() => setSelectedVaultId('custom')}
-            className={`w-full p-3 rounded-xl border-2 border-dashed transition-all cursor-pointer text-left ${
+            className={`w-full p-4 rounded-xl border-2 border-dashed transition-all cursor-pointer text-left ${
               selectedVaultId === 'custom'
                 ? 'border-[#1C1B18] bg-[#FAFAF8]'
                 : 'border-[#E4E2DC] hover:border-[#C9C7BF]'
             }`}
           >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-[#F8F7F4] flex items-center justify-center">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-[#6B6960]">
+              <div className="w-10 h-10 rounded-lg bg-[#F8F7F4] flex items-center justify-center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-[#6B6960]">
                   <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
               </div>
               <div>
-                <p className="font-medium text-sm text-[#1C1B18]">Custom Vault</p>
-                <p className="text-xs text-[#6B6960]">Any ERC-4626 vault on Base</p>
+                <p className="font-medium text-[#1C1B18]">Custom Vault</p>
+                <p className="text-sm text-[#6B6960]">Any ERC-4626 vault on Base</p>
               </div>
             </div>
           </button>
