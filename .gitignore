@@ -53,3 +53,4 @@ data/ens-preferences.json
 # claude
 .claude/
 CLAUDE.md
+docs/plans/
