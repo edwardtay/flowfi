@@ -30,7 +30,7 @@ export default function LandingPage() {
             Accept any token.<br />Earn yield.
           </h1>
           <p className="text-[#6B6A63] mb-8 text-lg">
-            Get paid in any token from any chain. Auto-convert to USDC. Deposit to vaults earning up to 5% APY.
+            No more fragmented tokens across chains. Get paid in anything, receive USDC in your yield vault.
           </p>
           <Link
             href="/app"
