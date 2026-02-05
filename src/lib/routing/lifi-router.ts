@@ -10,6 +10,16 @@ import { getCached, setCache } from './route-cache'
 
 createConfig({ integrator: 'payagent' })
 
+// Timeout wrapper for external API calls
+function withTimeout<T>(promise: Promise<T>, ms: number, errorMsg: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(errorMsg)), ms)
+    ),
+  ])
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -83,17 +93,21 @@ export async function findRoutes(params: {
   if (cached) return cached
 
   try {
-    const result = await getRoutes({
-      fromAddress: params.fromAddress,
-      fromChainId,
-      toChainId,
-      fromTokenAddress: fromTokenAddr,
-      toTokenAddress: toTokenAddr,
-      fromAmount: amountWei,
-      options: {
-        slippage: params.slippage || 0.005,
-      },
-    })
+    const result = await withTimeout(
+      getRoutes({
+        fromAddress: params.fromAddress,
+        fromChainId,
+        toChainId,
+        fromTokenAddress: fromTokenAddr,
+        toTokenAddress: toTokenAddr,
+        fromAmount: amountWei,
+        options: {
+          slippage: params.slippage || 0.005,
+        },
+      }),
+      20000, // 20 second timeout
+      'LI.FI route request timed out'
+    )
 
     const routes: RouteOption[] = result.routes.slice(0, 3).map((route, i) =>
       buildRouteOption(
@@ -168,16 +182,20 @@ export async function findComposerRoutes(params: {
   try {
     // LI.FI Composer: use the standard /v1/quote endpoint with the vault token
     // as `toToken`. The backend detects the vault and builds a Composer workflow.
-    const quote = await getQuote({
-      fromChain: fromChainId,
-      fromToken: fromTokenAddr,
-      fromAddress: params.fromAddress,
-      fromAmount: amountWei,
-      toChain: toChainId,
-      toToken: vaultTokenAddr,
-      toAddress: params.fromAddress,
-      slippage: params.slippage || 0.005,
-    })
+    const quote = await withTimeout(
+      getQuote({
+        fromChain: fromChainId,
+        fromToken: fromTokenAddr,
+        fromAddress: params.fromAddress,
+        fromAmount: amountWei,
+        toChain: toChainId,
+        toToken: vaultTokenAddr,
+        toAddress: params.fromAddress,
+        slippage: params.slippage || 0.005,
+      }),
+      20000,
+      'LI.FI Composer quote timed out'
+    )
 
     const steps = quote.includedSteps || []
     const path =
@@ -255,16 +273,20 @@ export async function findContractCallRoutes(params: {
   if (cached) return cached
 
   try {
-    const quote = await getContractCallsQuote({
-      fromAddress: params.fromAddress,
-      fromChain: fromChainId,
-      fromToken: fromTokenAddr,
-      toChain: toChainId,
-      toToken: toTokenAddr,
-      toAmount: params.toAmount,
-      contractCalls: params.contractCalls,
-      slippage: params.slippage || 0.005,
-    } as Parameters<typeof getContractCallsQuote>[0])
+    const quote = await withTimeout(
+      getContractCallsQuote({
+        fromAddress: params.fromAddress,
+        fromChain: fromChainId,
+        fromToken: fromTokenAddr,
+        toChain: toChainId,
+        toToken: toTokenAddr,
+        toAmount: params.toAmount,
+        contractCalls: params.contractCalls,
+        slippage: params.slippage || 0.005,
+      } as Parameters<typeof getContractCallsQuote>[0]),
+      20000,
+      'LI.FI Contract Calls quote timed out'
+    )
 
     const steps = quote.includedSteps || []
     const path =

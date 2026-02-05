@@ -9,6 +9,10 @@ const client = createPublicClient({
   transport: http(process.env.ETH_RPC_URL || 'https://eth.llamarpc.com'),
 })
 
+// Simple in-memory cache for ENS resolution (5 minute TTL)
+const ensCache = new Map<string, { data: ENSResolution; expires: number }>()
+const ENS_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
 /**
  * Resolve an ENS name to an address and read PayAgent-specific + standard text records.
  *
@@ -25,6 +29,13 @@ const client = createPublicClient({
  */
 export async function resolveENS(name: string): Promise<ENSResolution> {
   const normalized = normalize(name)
+
+  // Check cache first
+  const cached = ensCache.get(normalized)
+  if (cached && cached.expires > Date.now()) {
+    return cached.data
+  }
+
   const address = await client.getEnsAddress({ name: normalized })
 
   let preferredChain: string | undefined
@@ -87,7 +98,7 @@ export async function resolveENS(name: string): Promise<ENSResolution> {
     // Text records not set, that's fine
   }
 
-  return {
+  const result: ENSResolution = {
     address,
     preferredChain,
     preferredToken,
@@ -100,6 +111,11 @@ export async function resolveENS(name: string): Promise<ENSResolution> {
     strategy,
     strategies,
   }
+
+  // Cache the result
+  ensCache.set(normalized, { data: result, expires: Date.now() + ENS_CACHE_TTL })
+
+  return result
 }
 
 /**
