@@ -29,10 +29,40 @@ const SUPPORTED_CHAINS = [
 
 type ExecutionState = 'idle' | 'quoting' | 'approving' | 'pending' | 'confirmed' | 'error'
 
+type TokenBalance = {
+  chain: string
+  chainId: number
+  token: string
+  balance: string
+  balanceUSD: number
+}
+
+function useBalances(address?: string) {
+  const [balances, setBalances] = useState<TokenBalance[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!address) {
+      setBalances([])
+      return
+    }
+
+    setLoading(true)
+    fetch(`/api/balances?address=${address}`)
+      .then((r) => r.json())
+      .then((data) => setBalances(data.balances || []))
+      .catch(() => setBalances([]))
+      .finally(() => setLoading(false))
+  }, [address])
+
+  return { balances, loading }
+}
+
 export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props) {
   const { address, isConnected, chainId: walletChainId } = useAccount()
   const { sendTransactionAsync } = useSendTransaction()
   const { switchChainAsync } = useSwitchChain()
+  const { balances, loading: balancesLoading } = useBalances(address)
 
   const [amount, setAmount] = useState(prefilledAmount || '')
   const [selectedToken, setSelectedToken] = useState<string>(
@@ -44,6 +74,7 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
   const [recipientInfo, setRecipientInfo] = useState<ENSResolution | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showAllChains, setShowAllChains] = useState(false)
 
   // Quote state
   const [quote, setQuote] = useState<RouteOption | null>(null)
@@ -343,43 +374,130 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Token and Chain selectors */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Smart balance-aware selection */}
+          {isConnected && balances.length > 0 && !balancesLoading && (
             <div>
-              <label className="text-sm font-medium text-[#1C1B18] mb-1.5 block">
-                Token
+              <label className="text-sm font-medium text-[#1C1B18] mb-2 block">
+                Pay with your balance
               </label>
-              <select
-                value={selectedToken}
-                onChange={(e) => setSelectedToken(e.target.value)}
-                disabled={isExecuting}
-                className="w-full h-10 px-3 rounded-md border border-[#E4E2DC] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1C1B18] focus:border-transparent disabled:opacity-50"
-              >
-                {SUPPORTED_TOKENS.map((token) => (
-                  <option key={token} value={token}>
-                    {token}
-                  </option>
-                ))}
-              </select>
+              <div className="space-y-2">
+                {balances.slice(0, 4).map((bal) => {
+                  const chain = SUPPORTED_CHAINS.find((c) => c.name.toLowerCase() === bal.chain.toLowerCase())
+                  const isSelected = selectedToken === bal.token && selectedChain === (chain?.id || bal.chain)
+                  return (
+                    <button
+                      key={`${bal.chain}-${bal.token}`}
+                      onClick={() => {
+                        setSelectedToken(bal.token)
+                        setSelectedChain(chain?.id || bal.chain)
+                      }}
+                      disabled={isExecuting}
+                      className={`w-full p-3 rounded-lg border text-left transition-all ${
+                        isSelected
+                          ? 'border-[#1C1B18] bg-[#F8F7F4]'
+                          : 'border-[#E4E2DC] hover:border-[#9C9B93]'
+                      } disabled:opacity-50`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-[#1C1B18]">{bal.token}</span>
+                          <span className="text-xs text-[#6B6960] capitalize">on {bal.chain}</span>
+                        </div>
+                        <span className="text-sm text-[#6B6960]">
+                          {parseFloat(bal.balance).toFixed(2)} ({`$${bal.balanceUSD.toFixed(2)}`})
+                        </span>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+              {balances.length > 4 && (
+                <button
+                  onClick={() => setShowAllChains(!showAllChains)}
+                  className="mt-2 text-sm text-[#6B6960] hover:text-[#1C1B18]"
+                >
+                  {showAllChains ? 'Show less' : `+${balances.length - 4} more options`}
+                </button>
+              )}
+              {showAllChains && balances.slice(4).map((bal) => {
+                const chain = SUPPORTED_CHAINS.find((c) => c.name.toLowerCase() === bal.chain.toLowerCase())
+                const isSelected = selectedToken === bal.token && selectedChain === (chain?.id || bal.chain)
+                return (
+                  <button
+                    key={`${bal.chain}-${bal.token}`}
+                    onClick={() => {
+                      setSelectedToken(bal.token)
+                      setSelectedChain(chain?.id || bal.chain)
+                    }}
+                    disabled={isExecuting}
+                    className={`w-full p-3 rounded-lg border text-left transition-all mt-2 ${
+                      isSelected
+                        ? 'border-[#1C1B18] bg-[#F8F7F4]'
+                        : 'border-[#E4E2DC] hover:border-[#9C9B93]'
+                    } disabled:opacity-50`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-[#1C1B18]">{bal.token}</span>
+                        <span className="text-xs text-[#6B6960] capitalize">on {bal.chain}</span>
+                      </div>
+                      <span className="text-sm text-[#6B6960]">
+                        {parseFloat(bal.balance).toFixed(2)} ({`$${bal.balanceUSD.toFixed(2)}`})
+                      </span>
+                    </div>
+                  </button>
+                )
+              })}
             </div>
-            <div>
-              <label className="text-sm font-medium text-[#1C1B18] mb-1.5 block">
-                From Chain
-              </label>
-              <select
-                value={selectedChain}
-                onChange={(e) => setSelectedChain(e.target.value)}
-                disabled={isExecuting}
-                className="w-full h-10 px-3 rounded-md border border-[#E4E2DC] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1C1B18] focus:border-transparent disabled:opacity-50"
-              >
-                {SUPPORTED_CHAINS.map((chain) => (
-                  <option key={chain.id} value={chain.id}>
-                    {chain.name}
-                  </option>
-                ))}
-              </select>
+          )}
+
+          {/* Fallback: Manual token/chain selectors */}
+          {(!isConnected || balances.length === 0) && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium text-[#1C1B18] mb-1.5 block">
+                  Token
+                </label>
+                <select
+                  value={selectedToken}
+                  onChange={(e) => setSelectedToken(e.target.value)}
+                  disabled={isExecuting}
+                  className="w-full h-10 px-3 rounded-md border border-[#E4E2DC] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1C1B18] focus:border-transparent disabled:opacity-50"
+                >
+                  {SUPPORTED_TOKENS.map((token) => (
+                    <option key={token} value={token}>
+                      {token}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-[#1C1B18] mb-1.5 block">
+                  From Chain
+                </label>
+                <select
+                  value={selectedChain}
+                  onChange={(e) => setSelectedChain(e.target.value)}
+                  disabled={isExecuting}
+                  className="w-full h-10 px-3 rounded-md border border-[#E4E2DC] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1C1B18] focus:border-transparent disabled:opacity-50"
+                >
+                  {SUPPORTED_CHAINS.map((chain) => (
+                    <option key={chain.id} value={chain.id}>
+                      {chain.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Loading balances indicator */}
+          {isConnected && balancesLoading && (
+            <div className="flex items-center gap-2 text-sm text-[#6B6960]">
+              <div className="animate-spin w-4 h-4 border-2 border-[#6B6960] border-t-transparent rounded-full" />
+              Scanning your balances across 9 chains...
+            </div>
+          )}
 
           {/* Amount input */}
           <div>
