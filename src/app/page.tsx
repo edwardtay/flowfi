@@ -30,8 +30,8 @@ export default function LandingPage() {
             Accept any token.<br />Earn yield.
           </h1>
           <p className="text-[#6B6A63] mb-8">
-            No more scattered tokens. No manual swaps. No idle funds.<br />
-            <span className="text-[#1C1B18]">One link. Auto-convert. Done.</span>
+            Senders pay with any token. You receive USDC in your vault.<br />
+            <span className="text-[#1C1B18]">No scattered tokens. No manual swaps. No idle funds.</span>
           </p>
           <Link
             href="/app"
