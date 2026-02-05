@@ -1,72 +1,80 @@
-# AcceptAny
+# FlowFi
 
-Accept any token on any chain. Auto-convert to USDC and earn yield.
+Accept any token on any chain. Auto-convert to your preferred DeFi strategy.
 
 ## How It Works
 
-1. **Configure your ENS** — Connect wallet, pick a yield vault (Aave, Morpho)
-2. **Share your payment link** — `yieldroute.xyz/pay/yourname.eth`
-3. **Receive any token** — Sender pays with any token from any chain
-4. **Auto-convert + deposit** — Funds bridge to Base, convert to USDC, deposit to vault
-5. **Earn yield** — Your vault balance grows automatically
+1. **Get your payment link** — Connect wallet with ENS → get `flowfi.xyz/pay/yourname.eth`
+2. **Choose your strategy** — Yield vaults, restaking, or liquid USDC
+3. **Share your link** — Anyone can pay you with any token from any chain
+4. **Auto-route to DeFi** — Payments bridge to Base and deposit to your chosen strategy
+
+## Strategies
+
+| Strategy | Output | Protocol | Use Case |
+|----------|--------|----------|----------|
+| **Yield** | USDC → Vault | Aave, Morpho | Earn 4-8% APY on stablecoins |
+| **Restaking** | WETH → ezETH | Renzo | Earn EigenLayer points |
+| **Liquid** | USDC | Direct | Keep funds liquid |
+
+Split across multiple strategies: `yield:50,restaking:30,liquid:20`
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  RECEIVER DASHBOARD (/app)                                   │
-│  - Connect wallet, see ENS name                              │
-│  - Configure yield vault (Aave/Morpho)                       │
-│  - View vault balance, APY, earnings                         │
-│  - See incoming payments                                     │
-│  - Copy payment link                                         │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│  PAYMENT PAGE (/pay/[ens])                                   │
-│  - Sender picks any token from their wallet                  │
-│  - LI.FI quotes swap + bridge route                          │
-│  - One-click payment execution                               │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│  LI.FI BRIDGE                                                │
-│  - Swap sender's token → USDC                                │
-│  - Bridge to Base via CCTP                                   │
-│  - Destination call → YieldRouter                            │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│  UNISWAP V4 HOOK (YieldHook)                                 │
-│  - Reads recipient's vault from ENS                          │
-│  - Deposits USDC into ERC-4626 vault                         │
-│  - Vault shares credited to recipient                        │
-└─────────────────────────────────────────────────────────────┘
+Sender (any chain, any token)
+         │
+         ▼
+┌─────────────────────────────────────┐
+│  LI.FI Aggregator                   │
+│  - Swap to destination token        │
+│  - Bridge to Base via CCTP          │
+│  - Contract Call on arrival         │
+└─────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────┐
+│  Strategy Router (Base)             │
+│  - YieldRouter → ERC-4626 vault     │
+│  - RestakingRouter → Renzo ezETH    │
+│  - Direct transfer → wallet         │
+└─────────────────────────────────────┘
+         │
+         ▼
+    Recipient's DeFi position
 ```
 
-## Features
+## Yield Vaults (Base)
 
-**Receiver Dashboard** — ENS-centric dashboard showing vault balance, APY, yield earned, and incoming payments. One-click vault configuration saved to ENS.
+| Risk | Vault | Protocol |
+|------|-------|----------|
+| Low | Aave USDC | Aave v3 |
+| Low | Moonwell USDC | Moonwell |
+| Medium | Gauntlet Prime | Morpho |
+| Medium | Seamless USDC | Morpho |
+| Medium | Spark USDC | Morpho |
+| High | Gauntlet Frontier | Morpho |
+| High | Steakhouse RWA | Morpho |
+| High | Re7 RWA | Morpho |
 
-**Any Token Payment** — Senders pay with any token from any chain. LI.FI handles swap + bridge routing automatically.
+## ENS Configuration
 
-**Real-time Vault Data** — Live APY from DeFiLlama, on-chain vault balance and share conversion.
+Your DeFi preferences are stored in ENS text records:
 
-**ENS Integration** — Vault preference stored in `yieldroute.vault` ENS text record. Payment link is just your ENS name.
+| Record | Example | Description |
+|--------|---------|-------------|
+| `flowfi.strategy` | `yield` | Single strategy |
+| `flowfi.strategies` | `yield:50,restaking:50` | Multi-strategy split |
+| `yieldroute.vault` | `0x4e65...` | Specific vault address |
 
-**Uniswap V4 Hook** — `YieldHook` reads ENS, deposits to recipient's chosen ERC-4626 vault in `afterSwap`.
+## Deployed Contracts (Base Mainnet)
+
+| Contract | Address |
+|----------|---------|
+| YieldRouter | `0xE132329262224f5EEd5BCA1ee64768cf437308d8` |
+| RestakingRouter | `0x31549dB00B180d528f77083b130C0A045D0CF117` |
 
 ## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- npm or pnpm
-
-### Setup
 
 ```bash
 npm install
@@ -74,46 +82,17 @@ cp .env.local.example .env.local
 npm run dev
 ```
 
-Open http://localhost:3000/app
-
-### Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `NEXT_PUBLIC_WC_PROJECT_ID` | No | WalletConnect project ID |
-| `ETH_RPC_URL` | No | Ethereum RPC for ENS (defaults to llamarpc) |
-| `BASE_RPC_URL` | No | Base RPC for vault queries (defaults to base.org) |
-
-### Contracts
-
-```bash
-cd contracts
-forge build
-forge test -vv
-```
+Open http://localhost:3000
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
 | Framework | Next.js 16 (App Router) |
-| Styling | Tailwind CSS v4 + shadcn/ui |
-| Cross-chain | LI.FI SDK |
-| ENS | viem (getEnsAddress, getEnsText) |
-| Wallets | RainbowKit + wagmi v2 |
-| Yield Data | DeFiLlama API + on-chain ERC-4626 |
-| Contracts | Foundry + Uniswap v4 hooks |
-
-## Yield Vaults
-
-Currently supported on Base:
-
-| Vault | Protocol | Token |
-|-------|----------|-------|
-| Aave USDC | Aave v3 | USDC |
-| Morpho USDC | Morpho | USDC |
-
-Custom ERC-4626 vaults also supported.
+| Cross-chain | LI.FI SDK + Contract Calls |
+| ENS | viem |
+| Wallets | RainbowKit + wagmi |
+| Yield Data | DeFiLlama + on-chain ERC-4626 |
 
 ## License
 
