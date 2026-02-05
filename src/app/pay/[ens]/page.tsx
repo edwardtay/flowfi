@@ -4,10 +4,12 @@ import Link from 'next/link'
 
 interface Props {
   params: Promise<{ ens: string }>
+  searchParams: Promise<{ amount?: string; token?: string }>
 }
 
-export default async function PayPage({ params }: Props) {
+export default async function PayPage({ params, searchParams }: Props) {
   const { ens } = await params
+  const { amount, token } = await searchParams
 
   return (
     <div className="min-h-screen bg-[#F8F7F4]">
@@ -38,7 +40,7 @@ export default async function PayPage({ params }: Props) {
             </div>
           }
         >
-          <PaymentFlow ensName={ens} />
+          <PaymentFlow ensName={ens} prefilledAmount={amount} prefilledToken={token} />
         </Suspense>
       </main>
     </div>

@@ -1,5 +1,5 @@
 import { http, createStorage, cookieStorage } from 'wagmi'
-import { mainnet, base } from 'wagmi/chains'
+import { mainnet, base, arbitrum, optimism, polygon, avalanche, bsc, zkSync, linea } from 'wagmi/chains'
 import { getDefaultConfig } from '@rainbow-me/rainbowkit'
 
 // Stub indexedDB on the server so WalletConnect's EthereumProvider
@@ -19,12 +19,19 @@ export function getConfig() {
     _config = getDefaultConfig({
       appName: 'AcceptAny',
       projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID || 'demo',
-      chains: [mainnet, base],
+      chains: [mainnet, base, arbitrum, optimism, polygon, avalanche, bsc, zkSync, linea],
       ssr: true,
       storage: createStorage({ storage: cookieStorage }),
       transports: {
         [mainnet.id]: http(),
         [base.id]: http(),
+        [arbitrum.id]: http(),
+        [optimism.id]: http(),
+        [polygon.id]: http(),
+        [avalanche.id]: http(),
+        [bsc.id]: http(),
+        [zkSync.id]: http(),
+        [linea.id]: http(),
       },
     })
   }

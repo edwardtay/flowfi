@@ -189,6 +189,7 @@ export function ReceiverDashboard() {
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [requestAmount, setRequestAmount] = useState('')
 
   // Sync selected vault with loaded preference
   useEffect(() => {
@@ -257,7 +258,8 @@ export function ReceiverDashboard() {
   }
 
   const handleCopy = () => {
-    const link = `${window.location.origin}/pay/${ensName}`
+    const base = `${window.location.origin}/pay/${ensName}`
+    const link = requestAmount ? `${base}?amount=${requestAmount}` : base
     navigator.clipboard.writeText(link)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -324,7 +326,8 @@ export function ReceiverDashboard() {
     )
   }
 
-  const paymentLink = `${typeof window !== 'undefined' ? window.location.origin : ''}/pay/${ensName}`
+  const basePaymentLink = `${typeof window !== 'undefined' ? window.location.origin : ''}/pay/${ensName}`
+  const paymentLink = requestAmount ? `${basePaymentLink}?amount=${requestAmount}` : basePaymentLink
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
@@ -501,16 +504,33 @@ export function ReceiverDashboard() {
 
       {/* Payment Link */}
       <Card className="border-[#E4E2DC] bg-white">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
+        <CardContent className="p-4 space-y-4">
+          <div>
+            <p className="text-sm font-medium text-[#1C1B18] mb-2">Request Payment</p>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  type="number"
+                  placeholder="Amount (optional)"
+                  value={requestAmount}
+                  onChange={(e) => setRequestAmount(e.target.value)}
+                  className="pr-16 border-[#E4E2DC] focus:border-[#1C1B18] focus:ring-[#1C1B18]"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#6B6960]">
+                  USDC
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
               <p className="text-sm text-[#6B6960] mb-1">Payment Link</p>
-              <p className="font-mono text-[#1C1B18]">{paymentLink}</p>
+              <p className="font-mono text-sm text-[#1C1B18] truncate">{paymentLink}</p>
             </div>
             <Button
               onClick={handleCopy}
               variant="outline"
-              className="border-[#E4E2DC] hover:bg-[#F8F7F4]"
+              className="border-[#E4E2DC] hover:bg-[#F8F7F4] flex-shrink-0"
             >
               {copied ? 'Copied!' : 'Copy'}
             </Button>

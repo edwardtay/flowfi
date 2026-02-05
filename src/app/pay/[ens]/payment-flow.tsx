@@ -10,6 +10,8 @@ import type { ENSResolution, RouteOption } from '@/lib/types'
 
 interface Props {
   ensName: string
+  prefilledAmount?: string
+  prefilledToken?: string
 }
 
 const SUPPORTED_TOKENS = ['USDC', 'USDT', 'DAI', 'ETH'] as const
@@ -18,17 +20,26 @@ const SUPPORTED_CHAINS = [
   { id: 'base', name: 'Base', chainId: 8453 },
   { id: 'arbitrum', name: 'Arbitrum', chainId: 42161 },
   { id: 'optimism', name: 'Optimism', chainId: 10 },
+  { id: 'polygon', name: 'Polygon', chainId: 137 },
+  { id: 'avalanche', name: 'Avalanche', chainId: 43114 },
+  { id: 'bsc', name: 'BNB Chain', chainId: 56 },
+  { id: 'zksync', name: 'zkSync Era', chainId: 324 },
+  { id: 'linea', name: 'Linea', chainId: 59144 },
 ] as const
 
 type ExecutionState = 'idle' | 'quoting' | 'approving' | 'pending' | 'confirmed' | 'error'
 
-export function PaymentFlow({ ensName }: Props) {
+export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props) {
   const { address, isConnected, chainId: walletChainId } = useAccount()
   const { sendTransactionAsync } = useSendTransaction()
   const { switchChainAsync } = useSwitchChain()
 
-  const [amount, setAmount] = useState('')
-  const [selectedToken, setSelectedToken] = useState<string>('USDC')
+  const [amount, setAmount] = useState(prefilledAmount || '')
+  const [selectedToken, setSelectedToken] = useState<string>(
+    prefilledToken && SUPPORTED_TOKENS.includes(prefilledToken.toUpperCase() as typeof SUPPORTED_TOKENS[number])
+      ? prefilledToken.toUpperCase()
+      : 'USDC'
+  )
   const [selectedChain, setSelectedChain] = useState<string>('base')
   const [recipientInfo, setRecipientInfo] = useState<ENSResolution | null>(null)
   const [loading, setLoading] = useState(true)
@@ -254,6 +265,28 @@ export function PaymentFlow({ ensName }: Props) {
           {recipientInfo.address?.slice(0, 6)}...{recipientInfo.address?.slice(-4)}
         </p>
       </div>
+
+      {/* Payment request indicator */}
+      {prefilledAmount && (
+        <div className="rounded-xl bg-[#F0F4FF] border border-[#B7C7E8] p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#3B5998] flex items-center justify-center flex-shrink-0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-white">
+                <path d="M12 2V6M12 18V22M6 12H2M22 12H18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-[#3B5998]">
+                Payment request for ${prefilledAmount}
+              </p>
+              <p className="text-xs text-[#3B5998]/70">
+                Amount has been pre-filled by the recipient
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Yield indicator */}
       {hasYieldVault && (
