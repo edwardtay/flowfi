@@ -54,3 +54,34 @@ data/ens-preferences.json
 .claude/
 CLAUDE.md
 docs/plans/
+
+# internal / not for hackathon demo
+AI_USAGE.md
+dashboard.sh
+worktrees/
+stableroute/
+data/
+pnpm-workspace.yaml
+README-HACKATHON.md
+
+# unused default assets
+public/file.svg
+public/globe.svg
+public/next.svg
+public/vercel.svg
+public/window.svg
+
+# WIP features (oracle, consolidation, circle)
+src/lib/agent/
+src/lib/circle/
+src/lib/oracle/
+src/components/oracle-dashboard.tsx
+src/components/consolidation-panel.tsx
+src/app/api/oracle/
+src/app/api/consolidate/
+
+# contract tests
+contracts/test/
+
+# MCP server
+src/mcp/
