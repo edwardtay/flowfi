@@ -1,6 +1,33 @@
-import Link from 'next/link'
+'use client'
 
-export default function LandingPage() {
+import { useAccount } from 'wagmi'
+import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { ReceiverDashboard } from '@/components/receiver-dashboard'
+
+export default function HomePage() {
+  const { isConnected } = useAccount()
+
+  // Connected: show dashboard
+  if (isConnected) {
+    return (
+      <div className="flex flex-col min-h-screen bg-[#F8F7F4]">
+        {/* Header */}
+        <header className="flex items-center justify-between px-5 sm:px-8 py-3 border-b border-[#E4E2DC] bg-white shrink-0">
+          <div className="flex items-center gap-2.5">
+            <img src="/logo.png" alt="FlowFi" className="w-7 h-7 rounded-lg" />
+            <span className="text-[15px] font-semibold tracking-tight text-[#1C1B18]">
+              FlowFi
+            </span>
+          </div>
+          <ConnectButton />
+        </header>
+
+        <ReceiverDashboard />
+      </div>
+    )
+  }
+
+  // Not connected: show landing page
   return (
     <div className="min-h-screen bg-[#F8F7F4] flex flex-col">
       {/* Nav */}
@@ -10,12 +37,16 @@ export default function LandingPage() {
             <img src="/logo.png" alt="FlowFi" className="w-7 h-7 rounded-lg" />
             <span className="text-sm font-semibold text-[#1C1B18]">FlowFi</span>
           </div>
-          <Link
-            href="/app"
-            className="px-4 py-1.5 bg-[#1C1B18] text-[#F8F7F4] text-sm font-medium rounded-lg hover:bg-[#2D2C28] transition-colors"
-          >
-            Launch App
-          </Link>
+          <ConnectButton.Custom>
+            {({ openConnectModal }) => (
+              <button
+                onClick={openConnectModal}
+                className="px-4 py-1.5 bg-[#1C1B18] text-[#F8F7F4] text-sm font-medium rounded-lg hover:bg-[#2D2C28] transition-colors cursor-pointer"
+              >
+                Connect Wallet
+              </button>
+            )}
+          </ConnectButton.Custom>
         </div>
       </nav>
 
@@ -29,15 +60,19 @@ export default function LandingPage() {
             Share your payment link. Accept any token from any chain.<br />
             <span className="text-[#1C1B18]">Auto-converts to USDC and deposits to DeFi.</span>
           </p>
-          <Link
-            href="/app"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[#1C1B18] text-[#F8F7F4] font-medium rounded-xl hover:bg-[#2D2C28] transition-all"
-          >
-            Get Your Payment Link
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="opacity-60">
-              <path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </Link>
+          <ConnectButton.Custom>
+            {({ openConnectModal }) => (
+              <button
+                onClick={openConnectModal}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-[#1C1B18] text-[#F8F7F4] font-medium rounded-xl hover:bg-[#2D2C28] transition-all cursor-pointer"
+              >
+                Get Your Payment Link
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="opacity-60">
+                  <path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            )}
+          </ConnectButton.Custom>
 
           {/* How it works */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mt-12 text-sm">
