@@ -29,8 +29,9 @@ export default function LandingPage() {
           <h1 className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl text-[#1C1B18] mb-4 leading-tight">
             Accept any token.<br />Earn yield.
           </h1>
-          <p className="text-[#6B6A63] mb-8 text-lg">
-            No more fragmented tokens across chains. Get paid in anything, receive USDC in your yield vault.
+          <p className="text-[#6B6A63] mb-8">
+            No more scattered tokens. No manual swaps. No idle funds.<br />
+            <span className="text-[#1C1B18]">One link. Auto-convert. Earn yield.</span>
           </p>
           <Link
             href="/app"
