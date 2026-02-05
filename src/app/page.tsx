@@ -3,38 +3,38 @@ import Link from 'next/link'
 const FEATURES = [
   {
     number: '01',
-    title: '30x Cheaper Swaps',
+    title: 'Accept Any Token',
     description:
-      'Our Uniswap v4 hook charges 0.01% per swap instead of the standard 0.30%. An on-chain AI oracle adjusts fees in real-time based on peg stability from Stork price feeds.',
-    detail: '0.01% fee',
+      'Receive payments in any token from any chain. Senders pay with whatever they have — ETH, USDT, ARB, anything. You get USDC.',
+    detail: 'Any token',
   },
   {
     number: '02',
-    title: 'ENS as Config',
+    title: 'Auto-Convert + Yield',
     description:
-      'Set com.payagent.token to USDC and com.payagent.chain to Base. That\'s it. Every payment you receive auto-routes to your preferred store of value. Change once, applies everywhere.',
-    detail: 'One config',
+      'Incoming tokens automatically swap to USDC via LI.FI and deposit into your chosen yield vault. Aave, Morpho, or custom ERC-4626.',
+    detail: 'Auto yield',
   },
   {
     number: '03',
-    title: 'Cross-Chain Intelligence',
+    title: 'ENS as Config',
     description:
-      'Tokens scattered across Base, Ethereum, Arbitrum, Optimism? PayAgent detects them all and routes through LI.FI for optimal bridging — or converts to gold (PAXG) if that\'s your preference.',
-    detail: 'Any chain',
+      'Your vault preference lives in your ENS. Set it once, share your payment link. Anyone paying yourname.eth triggers the auto-route.',
+    detail: 'One config',
   },
 ]
 
 const STEPS = [
-  { step: '1', text: 'Set your preferred token and chain in ENS text records' },
-  { step: '2', text: 'Receive any token on any supported chain' },
-  { step: '3', text: 'PayAgent detects the deposit and swaps through the v4 hook' },
-  { step: '4', text: 'USDC, gold, or any target — consolidated automatically' },
+  { step: '1', text: 'Connect wallet and configure your yield vault in the dashboard' },
+  { step: '2', text: 'Share your payment link — yourname.eth' },
+  { step: '3', text: 'Senders pay with any token from any chain' },
+  { step: '4', text: 'Funds auto-convert to USDC and deposit to your vault' },
 ]
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#F8F7F4]">
-      {/* ─── Nav ─── */}
+      {/* Nav */}
       <nav className="sticky top-0 z-50 border-b border-[#E4E2DC] bg-[#F8F7F4]/80 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -45,7 +45,7 @@ export default function LandingPage() {
               </svg>
             </div>
             <span className="text-[15px] font-semibold tracking-tight text-[#1C1B18]">
-              PayAgent
+              AcceptAny
             </span>
           </div>
           <Link
@@ -60,39 +60,37 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* ─── Hero ─── */}
+      {/* Hero */}
       <section className="relative overflow-hidden">
-        {/* Subtle radial glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_center,_#E8DFC4_0%,_transparent_70%)] opacity-30 pointer-events-none" />
 
         <div className="relative max-w-4xl mx-auto px-6 pt-24 pb-20 sm:pt-32 sm:pb-28 text-center">
-          {/* Live badge */}
-          <div className="animate-fade-up inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#EDF5F0] border border-[#B7D4C7] mb-8">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#EDF5F0] border border-[#B7D4C7] mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F] animate-pulse" />
-            <span className="text-xs font-medium text-[#2D6A4F]">Live on Base Mainnet</span>
+            <span className="text-xs font-medium text-[#2D6A4F]">Live on Base</span>
           </div>
 
           {/* Headline */}
-          <h1 className="animate-fade-up animate-fade-up-delay-1 font-[family-name:var(--font-display)] text-5xl sm:text-7xl leading-[1.05] tracking-tight text-[#1C1B18] mb-6">
-            Your wealth.
+          <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-7xl leading-[1.05] tracking-tight text-[#1C1B18] mb-6">
+            Accept any token.
             <br />
-            Your terms.
+            Earn yield.
           </h1>
 
           {/* Subheadline */}
-          <p className="animate-fade-up animate-fade-up-delay-2 max-w-2xl mx-auto text-lg sm:text-xl leading-relaxed text-[#6B6A63] mb-10">
-            Set your preferred store of value in ENS — USDC, gold, anything.
-            PayAgent auto-consolidates everything you receive through a
-            Uniswap v4 hook at <span className="text-[#A17D2F] font-semibold">0.01% fees</span>.
+          <p className="max-w-2xl mx-auto text-lg sm:text-xl leading-relaxed text-[#6B6A63] mb-10">
+            Get paid in any token from any chain. AcceptAny auto-converts to USDC and deposits into yield vaults —
+            <span className="text-[#22C55E] font-semibold"> up to 5% APY</span>.
           </p>
 
           {/* CTA */}
-          <div className="animate-fade-up animate-fade-up-delay-3 flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
             <Link
               href="/app"
               className="inline-flex items-center gap-2.5 px-7 py-3.5 bg-[#1C1B18] text-[#F8F7F4] text-base font-medium rounded-xl hover:bg-[#2D2C28] transition-all hover:shadow-lg hover:shadow-[#1C1B18]/10"
             >
-              Launch App
+              Get Started
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-[#F8F7F4]/60">
                 <path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
@@ -103,42 +101,41 @@ export default function LandingPage() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-5 py-3 text-sm font-medium text-[#6B6A63] hover:text-[#1C1B18] transition-colors"
             >
-              View on BaseScan
+              View Contract
               <svg width="12" height="12" viewBox="0 0 16 16" fill="none" className="opacity-40">
                 <path d="M4 12L12 4M12 4H6M12 4V10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </a>
           </div>
-
         </div>
       </section>
 
-      {/* ─── Fee Highlight ─── */}
+      {/* Stats */}
       <section className="border-y border-[#E4E2DC] bg-white">
         <div className="max-w-6xl mx-auto px-6 py-16 sm:py-20">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-12 text-center">
             <div>
-              <p className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl text-[#A17D2F] mb-2">0.01%</p>
-              <p className="text-sm text-[#6B6A63]">Swap fee via PayAgent Hook</p>
+              <p className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl text-[#22C55E] mb-2">5.1%</p>
+              <p className="text-sm text-[#6B6A63]">Max APY on Morpho USDC</p>
             </div>
             <div>
-              <p className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl text-[#1C1B18] mb-2">30x</p>
-              <p className="text-sm text-[#6B6A63]">Cheaper than standard 0.30% pools</p>
+              <p className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl text-[#1C1B18] mb-2">Any</p>
+              <p className="text-sm text-[#6B6A63]">Token accepted as payment</p>
             </div>
             <div>
               <p className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl text-[#1C1B18] mb-2">4</p>
-              <p className="text-sm text-[#6B6A63]">Chains monitored simultaneously</p>
+              <p className="text-sm text-[#6B6A63]">Chains supported</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ─── Features ─── */}
+      {/* Features */}
       <section className="max-w-6xl mx-auto px-6 py-20 sm:py-28">
         <div className="max-w-2xl mb-14">
-          <p className="text-xs font-semibold tracking-widest text-[#A17D2F] uppercase mb-3">How it works</p>
+          <p className="text-xs font-semibold tracking-widest text-[#22C55E] uppercase mb-3">How it works</p>
           <h2 className="font-[family-name:var(--font-display)] text-3xl sm:text-4xl text-[#1C1B18] leading-tight">
-            One configuration.<br />Zero manual steps.
+            One link.<br />Automatic yield.
           </h2>
         </div>
 
@@ -147,8 +144,8 @@ export default function LandingPage() {
             <div key={feature.number} className="group">
               <div className="flex items-center gap-3 mb-4">
                 <span className="text-xs font-mono text-[#9C9B93]">{feature.number}</span>
-                <span className="flex-1 h-px bg-[#E4E2DC] group-hover:bg-[#A17D2F] transition-colors" />
-                <span className="text-xs font-medium text-[#A17D2F]">{feature.detail}</span>
+                <span className="flex-1 h-px bg-[#E4E2DC] group-hover:bg-[#22C55E] transition-colors" />
+                <span className="text-xs font-medium text-[#22C55E]">{feature.detail}</span>
               </div>
               <h3 className="text-lg font-semibold text-[#1C1B18] mb-2">{feature.title}</h3>
               <p className="text-sm text-[#6B6A63] leading-relaxed">{feature.description}</p>
@@ -157,12 +154,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── Steps ─── */}
+      {/* Steps */}
       <section className="border-y border-[#E4E2DC] bg-white">
         <div className="max-w-4xl mx-auto px-6 py-20 sm:py-24">
-          <p className="text-xs font-semibold tracking-widest text-[#A17D2F] uppercase mb-10 text-center">The Flow</p>
+          <p className="text-xs font-semibold tracking-widest text-[#22C55E] uppercase mb-10 text-center">The Flow</p>
           <div className="space-y-0">
-            {STEPS.map((item, i) => (
+            {STEPS.map((item) => (
               <div key={item.step} className="flex items-start gap-6 py-5 border-b border-[#EDEBE6] last:border-0">
                 <span className="font-[family-name:var(--font-display)] text-3xl text-[#E4E2DC] leading-none pt-0.5">
                   {item.step}
@@ -176,37 +173,38 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── On-Chain Proof ─── */}
+      {/* Vaults */}
       <section className="max-w-4xl mx-auto px-6 py-20 sm:py-24">
         <div className="text-center mb-12">
-          <p className="text-xs font-semibold tracking-widest text-[#A17D2F] uppercase mb-3">Deployed</p>
+          <p className="text-xs font-semibold tracking-widest text-[#22C55E] uppercase mb-3">Yield Vaults</p>
           <h2 className="font-[family-name:var(--font-display)] text-3xl sm:text-4xl text-[#1C1B18]">
-            Live on Base mainnet
+            Earn while you sleep
           </h2>
         </div>
 
         <div className="bg-white border border-[#E4E2DC] rounded-xl overflow-hidden">
           <div className="divide-y divide-[#EDEBE6]">
             {[
-              ['Hook Contract', '0xA5Cb63B540D4334F01346F3D4C51d5B2fFf050c0'],
-              ['Pool ID', '0xa0d5acc69bb0869...ec2821d169'],
-              ['Pool Manager', '0x498581fF718922c3f8e6A244956aF099B2652b2b'],
-              ['Dynamic Fee', '0.01% (100 hundredths of a bip)'],
-              ['Chain', 'Base (8453)'],
-              ['Oracle', '0x999A8DBc672A0DA86471e67b9A22eA2B1c91e101'],
-            ].map(([label, value]) => (
-              <div key={label} className="flex items-center justify-between px-6 py-4">
-                <span className="text-sm text-[#6B6A63]">{label}</span>
-                <span className="text-sm font-mono text-[#1C1B18] text-right max-w-[60%] truncate">
-                  {value}
-                </span>
+              ['Aave USDC', 'Aave v3', '~4.2% APY', 'Base'],
+              ['Morpho USDC', 'Morpho', '~5.1% APY', 'Base'],
+              ['Custom Vault', 'Any ERC-4626', 'Variable', 'Base'],
+            ].map(([name, protocol, apy, chain]) => (
+              <div key={name} className="flex items-center justify-between px-6 py-4">
+                <div>
+                  <span className="text-sm font-medium text-[#1C1B18]">{name}</span>
+                  <span className="text-sm text-[#6B6A63] ml-2">· {protocol}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm font-semibold text-[#22C55E]">{apy}</span>
+                  <span className="text-xs text-[#9C9B93] ml-2">{chain}</span>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ─── Footer ─── */}
+      {/* Footer */}
       <footer className="border-t border-[#E4E2DC]">
         <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -215,7 +213,7 @@ export default function LandingPage() {
                 <path d="M8 1L14.5 5V11L8 15L1.5 11V5L8 1Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
               </svg>
             </div>
-            <span className="text-sm font-medium text-[#1C1B18]">PayAgent</span>
+            <span className="text-sm font-medium text-[#1C1B18]">AcceptAny</span>
           </div>
           <p className="text-xs text-[#9C9B93]">
             Built for ETHGlobal HackMoney 2026
@@ -230,7 +228,7 @@ export default function LandingPage() {
               BaseScan
             </a>
             <a
-              href="https://github.com"
+              href="https://github.com/edwardtay/hack-money"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-[#1C1B18] transition-colors"
