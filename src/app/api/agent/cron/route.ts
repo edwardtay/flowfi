@@ -1330,76 +1330,98 @@ export async function POST(request: Request) {
         },
       })
 
-      // High confidence? Try to execute
-      if (intent.confidence >= 0.7 && AGENT_PRIVATE_KEY) {
+      // Determine why we can/cannot execute
+      const canExecuteReasons: string[] = []
+
+      if (intent.confidence < 0.7) {
+        canExecuteReasons.push('low_confidence')
+      }
+      if (!AGENT_PRIVATE_KEY) {
+        canExecuteReasons.push('no_agent_wallet')
+      }
+      if (!intent.amount) {
+        canExecuteReasons.push('missing_amount')
+      }
+      if (intent.action !== 'swap') {
+        canExecuteReasons.push(`action_not_supported_yet:${intent.action}`)
+      }
+      if (intent.fromChain && intent.fromChain !== 'base') {
+        canExecuteReasons.push(`chain_not_base:${intent.fromChain}`)
+      }
+
+      // High confidence + has wallet + swap on Base = try to execute
+      if (
+        intent.confidence >= 0.7 &&
+        AGENT_PRIVATE_KEY &&
+        intent.action === 'swap' &&
+        intent.amount &&
+        (!intent.fromChain || intent.fromChain === 'base')
+      ) {
         const account = privateKeyToAccount(AGENT_PRIVATE_KEY)
 
-        // For swaps on Base, actually execute
-        if (intent.action === 'swap' && intent.amount && intent.fromChain === 'base') {
-          const swapIntent: ParsedIntent = {
-            action: 'swap',
-            fromToken: intent.token || 'USDC',
-            toToken: 'USDT',
-            amount: intent.amount,
-            fromChain: 'base',
-            toChain: 'base',
-          }
+        const swapIntent: ParsedIntent = {
+          action: 'swap',
+          fromToken: intent.token || 'USDC',
+          toToken: 'USDT',
+          amount: intent.amount,
+          fromChain: 'base',
+          toChain: 'base',
+        }
 
-          try {
-            const txData = await getTransactionData(
-              swapIntent,
-              account.address,
-              0.01,
-              'Uniswap v4'
-            )
+        try {
+          const txData = await getTransactionData(
+            swapIntent,
+            account.address,
+            0.01,
+            'Uniswap v4'
+          )
 
-            const walletClient = createWalletClient({
-              account,
-              chain: base,
-              transport: http(),
-            })
+          const walletClient = createWalletClient({
+            account,
+            chain: base,
+            transport: http(),
+          })
 
-            const txHash = await walletClient.sendTransaction({
-              to: txData.to as Address,
-              data: txData.data as `0x${string}`,
-              value: BigInt(txData.value || '0'),
-            })
+          const txHash = await walletClient.sendTransaction({
+            to: txData.to as Address,
+            data: txData.data as `0x${string}`,
+            value: BigInt(txData.value || '0'),
+          })
 
-            log({
-              type: 'v4_swap',
-              receiver: account.address,
-              details: {
-                phase: 'AI_EXECUTED',
-                input: message,
-                txHash,
-              },
-            })
+          log({
+            type: 'v4_swap',
+            receiver: account.address,
+            details: {
+              phase: 'AI_EXECUTED',
+              input: message,
+              txHash,
+            },
+          })
 
-            return NextResponse.json({
-              success: true,
-              ai: {
-                understood: message,
-                intent,
-                executed: true,
-              },
-              execution: {
-                txHash,
-                explorerUrl: `https://basescan.org/tx/${txHash}`,
-                via: 'Uniswap v4 + PayAgentHook',
-              },
-              proof: {
-                aiPowered: true,
-                naturalLanguageToTx: true,
-                llm: 'Groq/Llama-3.1-70b',
-              },
-            })
-          } catch (execError) {
-            return NextResponse.json({
-              success: false,
-              ai: { understood: message, intent },
-              error: execError instanceof Error ? execError.message : String(execError),
-            })
-          }
+          return NextResponse.json({
+            success: true,
+            ai: {
+              understood: message,
+              intent,
+              executed: true,
+            },
+            execution: {
+              txHash,
+              explorerUrl: `https://basescan.org/tx/${txHash}`,
+              via: 'Uniswap v4 + PayAgentHook',
+            },
+            proof: {
+              aiPowered: true,
+              naturalLanguageToTx: true,
+              llm: 'Groq/Llama-3.3-70b',
+            },
+          })
+        } catch (execError) {
+          return NextResponse.json({
+            success: false,
+            ai: { understood: message, intent },
+            error: execError instanceof Error ? execError.message : String(execError),
+          })
         }
       }
 
@@ -1410,7 +1432,7 @@ export async function POST(request: Request) {
           understood: message,
           intent,
           executed: false,
-          reason: intent.confidence < 0.7 ? 'low_confidence' : 'no_agent_wallet',
+          reason: canExecuteReasons.length > 0 ? canExecuteReasons : ['unknown'],
         },
         help: 'Try: "swap 0.05 USDC to USDT on base"',
       })

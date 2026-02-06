@@ -24,31 +24,44 @@ export interface AgentDecision {
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
-const SYSTEM_PROMPT = `You are FlowFi's AI payment agent. You analyze situations and decide on actions.
+const SYSTEM_PROMPT = `You are FlowFi's AI payment agent. You analyze user requests and extract structured intents.
+
+CRITICAL RULES:
+1. NEVER invent or guess values not explicitly stated by the user
+2. If amount is not specified, set amount to null
+3. If recipient is not specified, set recipient to null
+4. If the request is vague or unclear, set confidence to 0.3 or lower
+5. Only set confidence >= 0.7 if ALL required fields are explicitly provided
 
 Available actions:
-- pay: Send payment to an ENS name or address
-- swap: Exchange one token for another
-- bridge: Move tokens across chains
-- subscribe: Set up recurring payment
-- refill: Top up a gas tank for gasless payments
+- pay: Send payment (REQUIRES: recipient AND amount)
+- swap: Exchange tokens (REQUIRES: amount, ideally fromToken and toToken)
+- bridge: Move across chains (REQUIRES: amount, fromChain, toChain)
+- subscribe: Recurring payment (REQUIRES: recipient, amount, frequency)
+- refill: Top up gas tank (REQUIRES: amount)
 
 Supported chains: ethereum, base, arbitrum, optimism, polygon
 Supported tokens: USDC, USDT, ETH, WETH, DAI
-Strategies: yield (earn interest), restaking (earn points), liquid (keep cash)
 
-Always respond with valid JSON matching this schema:
+Confidence scoring:
+- 0.9: All required fields explicitly stated
+- 0.7: Most fields stated, minor inference needed
+- 0.5: Some fields missing, reasonable guess possible
+- 0.3: Vague request, significant guessing required
+- 0.1: Cannot understand request
+
+Respond with JSON:
 {
   "action": "pay|swap|bridge|subscribe|refill",
-  "recipient": "name.eth or 0x address (if applicable)",
-  "amount": "numeric string",
-  "token": "token symbol",
-  "fromChain": "chain name",
-  "toChain": "chain name",
+  "recipient": "name.eth or address OR null if not specified",
+  "amount": "numeric string OR null if not specified",
+  "token": "token symbol or null",
+  "fromChain": "chain name or null",
+  "toChain": "chain name or null",
   "frequency": "once|weekly|monthly",
-  "strategy": "yield|restaking|liquid",
+  "strategy": "yield|restaking|liquid or null",
   "confidence": 0.0-1.0,
-  "reasoning": "brief explanation"
+  "reasoning": "brief explanation of what was extracted and what was missing"
 }`
 
 const DECISION_PROMPT = `You are FlowFi's autonomous agent. Analyze the situation and decide whether to act.
@@ -97,6 +110,47 @@ async function callGroq(messages: { role: string; content: string }[]): Promise<
 }
 
 /**
+ * Validate intent and adjust confidence based on missing required fields
+ */
+function validateIntent(intent: PaymentIntent): PaymentIntent {
+  const missingFields: string[] = []
+  let adjustedConfidence = intent.confidence
+
+  // Check required fields based on action
+  switch (intent.action) {
+    case 'pay':
+      if (!intent.recipient) missingFields.push('recipient')
+      if (!intent.amount) missingFields.push('amount')
+      break
+    case 'swap':
+      if (!intent.amount) missingFields.push('amount')
+      break
+    case 'bridge':
+      if (!intent.amount) missingFields.push('amount')
+      if (!intent.fromChain || !intent.toChain) missingFields.push('chains')
+      break
+    case 'subscribe':
+      if (!intent.recipient) missingFields.push('recipient')
+      if (!intent.amount) missingFields.push('amount')
+      break
+    case 'refill':
+      if (!intent.amount) missingFields.push('amount')
+      break
+  }
+
+  // Reduce confidence for each missing required field
+  if (missingFields.length > 0) {
+    adjustedConfidence = Math.min(adjustedConfidence, 0.4)
+    intent.reasoning = `${intent.reasoning}. Missing: ${missingFields.join(', ')}`
+  }
+
+  return {
+    ...intent,
+    confidence: adjustedConfidence,
+  }
+}
+
+/**
  * Parse natural language into a structured payment intent
  */
 export async function parseIntent(userMessage: string): Promise<PaymentIntent> {
@@ -109,18 +163,23 @@ export async function parseIntent(userMessage: string): Promise<PaymentIntent> {
 
   try {
     const parsed = JSON.parse(response)
-    return {
+
+    // Handle null values from AI (don't replace with defaults if AI said null)
+    const intent: PaymentIntent = {
       action: parsed.action || 'pay',
-      recipient: parsed.recipient,
-      amount: parsed.amount,
-      token: parsed.token || 'USDC',
-      fromChain: parsed.fromChain || 'base',
-      toChain: parsed.toChain || 'base',
+      recipient: parsed.recipient || undefined,
+      amount: parsed.amount || undefined,
+      token: parsed.token || undefined,
+      fromChain: parsed.fromChain || undefined,
+      toChain: parsed.toChain || undefined,
       frequency: parsed.frequency || 'once',
-      strategy: parsed.strategy,
+      strategy: parsed.strategy || undefined,
       confidence: parsed.confidence || 0.5,
       reasoning: parsed.reasoning || 'Parsed from user input',
     }
+
+    // Validate and adjust confidence
+    return validateIntent(intent)
   } catch {
     return {
       action: 'pay',
