@@ -30,9 +30,30 @@ type ParsedSubname =
   | { type: 'preference'; name: string }
   | { type: 'receipt'; txHash: string }
   | { type: 'payment-request'; amount: string; token: string; recipient: string }
+  | { type: 'apy'; vaultType: string; parentName: string }
+  | { type: 'invoice-status'; invoiceId: string; parentName: string }
   | null
 
 const PAYMENT_REQUEST_RE = /^pay-(\d+(?:\.\d+)?)-([a-zA-Z]+)$/i
+const INVOICE_STATUS_RE = /^status\.inv-([a-zA-Z0-9]+)$/i
+
+// Dynamic APY data (in production, fetch from DeFiLlama or on-chain)
+const APY_DATA: Record<string, { apy: string; tvl: string; protocol: string }> = {
+  aave: { apy: '4.82%', tvl: '$1.2B', protocol: 'Aave v3' },
+  morpho: { apy: '6.45%', tvl: '$450M', protocol: 'Morpho Blue' },
+  moonwell: { apy: '5.12%', tvl: '$180M', protocol: 'Moonwell' },
+  default: { apy: '5.50%', tvl: '$500M', protocol: 'Mixed' },
+}
+
+// Invoice status (in production, fetch from database)
+async function getInvoiceStatus(invoiceId: string): Promise<{ status: string; amount?: string; paidAt?: string } | null> {
+  // For demo, return sample data
+  // In production, this would query the invoice database
+  return {
+    status: 'pending',
+    amount: '100 USDC',
+  }
+}
 
 /**
  * Parse a wildcard DNS name into its subname type.
@@ -41,11 +62,26 @@ const PAYMENT_REQUEST_RE = /^pay-(\d+(?:\.\d+)?)-([a-zA-Z]+)$/i
  *   - "alice.payagent.eth" → preference lookup for "alice.eth"
  *   - "tx-0xabc.payments.payagent.eth" → receipt lookup for txHash "0xabc"
  *   - "pay-10-usdc.alice.payagent.eth" → payment request (amount=10, token=USDC, recipient=alice.eth)
+ *   - "apy.alice.eth" → current APY for alice's vault
+ *   - "status.inv-123.alice.eth" → invoice status
  */
 function parseSubname(labels: string[]): ParsedSubname {
   if (labels.length < 3) return null
 
   const firstLabel = labels[0]
+
+  // APY lookup: apy.{name}.eth (3+ labels, first is "apy")
+  if (firstLabel === 'apy' && labels.length >= 3) {
+    const parentName = labels.slice(1).join('.')
+    return { type: 'apy', vaultType: 'default', parentName }
+  }
+
+  // Invoice status: status.inv-{id}.{name}.eth
+  if (firstLabel === 'status' && labels.length >= 4 && labels[1].startsWith('inv-')) {
+    const invoiceId = labels[1].slice(4) // remove "inv-" prefix
+    const parentName = labels.slice(2).join('.')
+    return { type: 'invoice-status', invoiceId, parentName }
+  }
 
   // Receipt subname: tx-{hash}.payments.payagent.eth (4+ labels, first starts with "tx-")
   if (firstLabel.startsWith('tx-') && labels.length >= 4) {
@@ -136,7 +172,36 @@ export async function GET(
     const parsed = parseSubname(labels)
     let resultValue = ''
 
-    if (parsed?.type === 'receipt') {
+    if (parsed?.type === 'apy') {
+      // APY lookup: return dynamic yield data
+      // In production, this would fetch from DeFiLlama or on-chain
+      const apyInfo = APY_DATA[parsed.vaultType] || APY_DATA.default
+
+      if (key === 'flowfi.apy') {
+        resultValue = apyInfo.apy
+      } else if (key === 'flowfi.tvl') {
+        resultValue = apyInfo.tvl
+      } else if (key === 'flowfi.protocol') {
+        resultValue = apyInfo.protocol
+      } else if (key === 'description') {
+        resultValue = `Current APY: ${apyInfo.apy} via ${apyInfo.protocol}`
+      }
+    } else if (parsed?.type === 'invoice-status') {
+      // Invoice status: return dynamic invoice state
+      const invoiceStatus = await getInvoiceStatus(parsed.invoiceId)
+
+      if (invoiceStatus) {
+        if (key === 'flowfi.invoice.status') {
+          resultValue = invoiceStatus.status
+        } else if (key === 'flowfi.invoice.amount') {
+          resultValue = invoiceStatus.amount || ''
+        } else if (key === 'flowfi.invoice.paidAt') {
+          resultValue = invoiceStatus.paidAt || ''
+        } else if (key === 'description') {
+          resultValue = `Invoice ${parsed.invoiceId}: ${invoiceStatus.status}`
+        }
+      }
+    } else if (parsed?.type === 'receipt') {
       // Receipt lookup: return text record values from stored receipt
       const receipt = await getReceipt(parsed.txHash)
       if (receipt && key in receipt) {

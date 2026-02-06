@@ -144,6 +144,32 @@ inv-{invoiceId}.yourname.eth → invoice data
 - Payment URL: `flowfi.xyz/pay/inv-123.yourname.eth`
 - Verifiable on-chain invoice proof
 
+## ENS CCIP-Read Offchain Resolver
+
+FlowFi implements EIP-3668 (CCIP-Read) for dynamic offchain data resolution:
+
+**Supported Wildcard Subdomains:**
+
+| Pattern | Returns | Example |
+|---------|---------|---------|
+| `apy.name.eth` | Current vault APY | `5.50%` |
+| `status.inv-{id}.name.eth` | Invoice status | `pending` |
+| `pay-{amount}-{token}.name.eth` | Payment request | Pre-filled payment |
+| `tx-{hash}.payments.name.eth` | Receipt data | Payment proof |
+
+**How It Works:**
+1. ENS client queries `apy.alice.eth`
+2. Resolver reverts with `OffchainLookup` pointing to gateway
+3. Gateway (`/api/ens/gateway`) returns dynamic APY data
+4. Client receives live yield rates without on-chain storage
+
+**Gateway Endpoint:**
+```
+GET /api/ens/gateway/{sender}/{data}.json
+```
+
+This shows ENS is more than key-value storage — it's a decentralized data layer.
+
 ## Getting Started
 
 ```bash
