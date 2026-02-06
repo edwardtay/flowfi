@@ -35,10 +35,10 @@ export function ReceiverSetup({ ensName, onComplete }: Props) {
       <Card className="border-[#E4E2DC] bg-white max-w-md mx-auto">
         <CardContent className="p-6 text-center space-y-4">
           <h2 className="text-xl font-semibold text-[#1C1B18]">
-            Zero-Gas Payment Link
+            Gas-Sponsored Payments
           </h2>
           <p className="text-sm text-[#6B6960]">
-            Connect wallet. Your customers will never pay gas fees.
+            Connect wallet. Repeat payers pay $0 gas — you cover it.
           </p>
           <ConnectButton />
         </CardContent>

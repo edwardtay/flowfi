@@ -55,10 +55,10 @@ export default function HomePage() {
         <div className="max-w-2xl text-center py-12">
           {/* Main headline */}
           <h1 className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl text-[#1C1B18] mb-4 leading-tight">
-            Your customers pay<br /><span className="text-[#22C55E]">$0 gas. Ever.</span>
+            Repeat customers pay<br /><span className="text-[#22C55E]">$0 gas.</span>
           </h1>
           <p className="text-lg text-[#6B6A63] mb-8 max-w-lg mx-auto">
-            AI agent manages your gas tank automatically. You set it up once, it runs forever.
+            First payment approves Permit2 (one-time). After that, they just sign — you cover gas.
           </p>
 
           <ConnectButton.Custom>
@@ -84,17 +84,17 @@ export default function HomePage() {
             </div>
             <div className="flex-1 text-center">
               <div className="w-10 h-10 rounded-full bg-[#1C1B18] text-white flex items-center justify-center mx-auto mb-2 text-sm font-semibold">2</div>
-              <p className="font-semibold text-[#1C1B18]">Share your link</p>
-              <p className="text-[#9C9B93] text-xs mt-1">pay/yourname.eth</p>
+              <p className="font-semibold text-[#1C1B18]">Payer approves once</p>
+              <p className="text-[#9C9B93] text-xs mt-1">Permit2 (first time only)</p>
             </div>
             <div className="flex-1 text-center">
               <div className="w-10 h-10 rounded-full bg-[#22C55E] text-white flex items-center justify-center mx-auto mb-2">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <p className="font-semibold text-[#1C1B18]">AI keeps it full</p>
-              <p className="text-[#9C9B93] text-xs mt-1">Auto-refills from cheapest chain</p>
+              <p className="font-semibold text-[#1C1B18]">Then just sign</p>
+              <p className="text-[#9C9B93] text-xs mt-1">$0 gas forever</p>
             </div>
           </div>
 

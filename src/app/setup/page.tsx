@@ -41,10 +41,10 @@ export default function SetupPage() {
       <main className="max-w-4xl mx-auto px-4 py-12">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-semibold text-[#1C1B18] mb-2">
-            Enable $0 Gas Payments
+            Sponsor Gas for Your Payers
           </h1>
           <p className="text-[#6B6960]">
-            Fund your gas tank once. AI agent keeps it running forever.
+            After one-time Permit2 approval, repeat payers pay $0 gas.
           </p>
         </div>
 
@@ -71,10 +71,10 @@ export default function SetupPage() {
               </svg>
             </div>
             <h3 className="font-semibold text-[#1C1B18] mb-1">
-              Payers Pay $0 Gas
+              Repeat Payers: $0 Gas
             </h3>
             <p className="text-sm text-[#6B6960]">
-              Your gas tank covers execution. Payers just sign.
+              After Permit2 approval, payers just sign. You cover gas.
             </p>
           </div>
 
