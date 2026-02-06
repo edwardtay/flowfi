@@ -98,6 +98,22 @@ FlowFi uses a custom Uniswap v4 hook (`PayAgentHook`) for on-chain dynamic fees.
 - Timelock on fee changes (150 blocks / ~5 min)
 - Max fee capped at 1% to prevent extraction
 
+## LI.FI Integration
+
+FlowFi uses LI.FI for cross-chain swaps and aggregated routing across 30+ chains.
+
+**Example Swap Transaction:**
+- TX: [0x6468fa14...8822ff40](https://basescan.org/tx/0x6468fa144a6526032e24f1aaddde8c48e0ce4b648361721085855c3f8822ff40)
+- Route: 0.5 USDC → 0.502 USDT on Base
+- Integrator: `flowfi`
+- Via: LI.FI Diamond (SushiSwap Aggregator)
+
+**Cross-Chain Flow:**
+1. User pays with any token on any supported chain
+2. LI.FI finds optimal route (swap + bridge)
+3. Contract Call executes on Base (YieldRouter or RestakingRouter)
+4. Funds arrive in recipient's chosen DeFi strategy
+
 ## Getting Started
 
 ```bash
