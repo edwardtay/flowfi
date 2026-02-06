@@ -1,12 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { resolveENS, resolveChainAddress } from '@/lib/ens/resolve'
 import { findRoutes } from '@/lib/routing/lifi-router'
-import { findV4Routes } from '@/lib/routing/v4-router'
+import { findV4Routes, V4_CHAINS } from '@/lib/routing/v4-router'
 import { getYieldRouteQuote, isYieldRouteEnabled } from '@/lib/routing/yield-router'
 import { getRestakingRouteQuote, isRestakingStrategy } from '@/lib/routing/restaking-router'
+import { getMultiVaultRouteQuote, isMultiVaultRoute } from '@/lib/routing/multi-vault-router'
 import { getTokenAddress, getPreferredChainForToken, CHAIN_MAP, CHAIN_ID_TO_NAME } from '@/lib/routing/tokens'
 import { isRateLimited } from '@/lib/rate-limit'
 import { getStrategy, parseStrategyAllocation, type StrategyAllocation } from '@/lib/strategies'
+
+// Stablecoins that should prefer Uniswap v4 for same-chain swaps
+const STABLECOINS = new Set(['USDC', 'USDT', 'DAI', 'FRAX', 'LUSD', 'TUSD', 'BUSD'])
+
+function isStablecoin(token: string): boolean {
+  return STABLECOINS.has(token.toUpperCase())
+}
+
+function isV4Supported(chain: string): boolean {
+  const cfg = V4_CHAINS[chain]
+  return cfg && cfg.hook !== '0x0000000000000000000000000000000000000000'
+}
 
 /**
  * POST /api/quote - Get payment routes without NLP parsing
@@ -117,6 +130,38 @@ export async function POST(req: NextRequest) {
     // Get the strategy configuration
     const strategy = getStrategy(ensStrategy)
 
+    // --- MULTI-VAULT ROUTE: If multi-strategy allocation, split to multiple vaults ---
+    if (isMultiVaultRoute(strategyAllocations)) {
+      const multiVaultResult = await getMultiVaultRouteQuote({
+        fromAddress: userAddress,
+        fromChain,
+        fromToken,
+        amount,
+        recipient: resolvedAddress,
+        allocations: strategyAllocations,
+        slippage: effectiveSlippage,
+      })
+
+      if ('error' in multiVaultResult) {
+        // Fall back to single strategy if multi-vault fails
+        console.warn('Multi-vault route failed, falling back to single strategy:', multiVaultResult.error)
+      } else {
+        // Multi-vault route found - splits to multiple destinations in ONE tx
+        return NextResponse.json({
+          routes: [multiVaultResult.route],
+          resolvedAddress,
+          toChain: 'base',
+          toToken: 'USDC',
+          strategy: 'multi',
+          strategyName: 'Multi-Strategy',
+          useMultiVaultRoute: true,
+          strategyAllocations,
+          isMultiStrategy: true,
+          allocations: multiVaultResult.allocations,
+        })
+      }
+    }
+
     // --- RESTAKING ROUTE: If strategy is restaking, route to Renzo ---
     if (isRestakingStrategy(ensStrategy)) {
       const restakingResult = await getRestakingRouteQuote({
@@ -191,6 +236,9 @@ export async function POST(req: NextRequest) {
       fromToken.toUpperCase() === finalToToken.toUpperCase() &&
       fromChain.toLowerCase() === toChain.toLowerCase()
 
+    // Track if we're using a v4 route (for response)
+    let useV4Route = false
+
     if (isSameTokenSameChain) {
       // Direct transfer - no routing needed
       allRoutes = [{
@@ -202,6 +250,15 @@ export async function POST(req: NextRequest) {
         routeType: 'standard',
       }]
     } else {
+      // Check for v4 hook routes (same-chain stablecoin swaps)
+      const v4Routes = findV4Routes({
+        fromChain,
+        toChain,
+        fromToken,
+        toToken: finalToToken,
+        amount,
+      })
+
       // Find routes via LI.FI
       const lifiRoutes = await findRoutes({
         fromAddress: userAddress,
@@ -213,16 +270,19 @@ export async function POST(req: NextRequest) {
         slippage: effectiveSlippage,
       })
 
-      // Check for v4 hook routes (same-chain stablecoin swaps)
-      const v4Routes = findV4Routes({
-        fromChain,
-        toChain,
-        fromToken,
-        toToken: finalToToken,
-        amount,
-      })
+      // Prioritize v4 routes for same-chain stablecoin swaps
+      const isSameChain = fromChain.toLowerCase() === toChain.toLowerCase()
+      const isStablecoinSwap = isStablecoin(fromToken) || isStablecoin(finalToToken)
+      const hasV4Support = isV4Supported(fromChain)
 
-      allRoutes = [...v4Routes, ...lifiRoutes]
+      if (v4Routes.length > 0 && isSameChain && isStablecoinSwap && hasV4Support) {
+        // V4 routes first for eligible swaps
+        allRoutes = [...v4Routes, ...lifiRoutes]
+        useV4Route = true
+      } else {
+        // Standard ordering: LI.FI routes first
+        allRoutes = [...lifiRoutes, ...v4Routes]
+      }
     }
 
     // Filter by maxFee if set
@@ -246,6 +306,7 @@ export async function POST(req: NextRequest) {
       toToken: finalToToken,
       yieldVault: yieldVault || null,
       useYieldRoute: false,
+      useV4Route,
       // Multi-strategy allocation info
       strategyAllocations: strategyAllocations.length > 1 ? strategyAllocations : undefined,
       isMultiStrategy: strategyAllocations.length > 1,

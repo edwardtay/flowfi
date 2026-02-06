@@ -10,28 +10,7 @@ export default function SetupPage() {
       <header className="border-b border-[#E4E2DC] bg-white">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#1C1B18] flex items-center justify-center">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                className="text-[#F8F7F4]"
-              >
-                <path
-                  d="M8 1L14.5 5V11L8 15L1.5 11V5L8 1Z"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M8 5.5V10.5M5.5 8H10.5"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </div>
+            <img src="/logo.png" alt="FlowFi" className="w-7 h-7 rounded-lg" />
             <span className="text-lg font-semibold text-[#1C1B18]">FlowFi</span>
           </Link>
         </div>
@@ -41,10 +20,10 @@ export default function SetupPage() {
       <main className="max-w-4xl mx-auto px-4 py-12">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-semibold text-[#1C1B18] mb-2">
-            Enable Crypto Subscriptions
+            Accept Any Token, Receive USDC
           </h1>
           <p className="text-[#6B6960]">
-            Payers sign once. AI agent charges them automatically.
+            Set your preferences once. Get paid in any token on any chain.
           </p>
         </div>
 
@@ -62,18 +41,26 @@ export default function SetupPage() {
                 className="text-[#8B5CF6]"
               >
                 <path
-                  d="M12 2V6M12 18V22M6 12H2M22 12H18"
+                  d="M12 2L2 7L12 12L22 7L12 2Z"
                   stroke="currentColor"
                   strokeWidth="2"
                   strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M2 17L12 22L22 17"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 />
               </svg>
             </div>
             <h3 className="font-semibold text-[#1C1B18] mb-1">
-              Recurring Payments
+              Any Token, Any Chain
             </h3>
             <p className="text-sm text-[#6B6960]">
-              Payer signs once. Auto-charged weekly or monthly.
+              Payers send ETH, USDT, ARB — from 9+ chains. You receive USDC.
             </p>
           </div>
 
@@ -87,7 +74,7 @@ export default function SetupPage() {
                 className="text-[#22C55E]"
               >
                 <path
-                  d="M13 2L3 14H12L11 22L21 10H12L13 2Z"
+                  d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
                   stroke="currentColor"
                   strokeWidth="2"
                   strokeLinecap="round"
@@ -96,10 +83,10 @@ export default function SetupPage() {
               </svg>
             </div>
             <h3 className="font-semibold text-[#1C1B18] mb-1">
-              AI Agent 24/7
+              Auto Yield
             </h3>
             <p className="text-sm text-[#6B6960]">
-              Monitors subscriptions, executes on schedule, refills tank.
+              Payments auto-deposit to Aave, Morpho, or Renzo. Earn 5-8% APY.
             </p>
           </div>
 
@@ -113,19 +100,26 @@ export default function SetupPage() {
                 className="text-[#F59E0B]"
               >
                 <path
-                  d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
+                  d="M20 21V19C20 16.79 18.21 15 16 15H8C5.79 15 4 16.79 4 19V21"
                   stroke="currentColor"
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
+                <circle
+                  cx="12"
+                  cy="7"
+                  r="4"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                />
               </svg>
             </div>
             <h3 className="font-semibold text-[#1C1B18] mb-1">
-              Earn While You Wait
+              ENS Identity
             </h3>
             <p className="text-sm text-[#6B6960]">
-              Payments auto-deposit to yield vaults. 4-8% APY.
+              Your ENS name is your payment link. Preferences stored on-chain.
             </p>
           </div>
         </div>

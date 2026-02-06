@@ -15,6 +15,8 @@ interface Props {
   ensName: string
   prefilledAmount?: string
   prefilledToken?: string
+  invoiceId?: string
+  invoiceMemo?: string
 }
 
 const SUPPORTED_CHAINS = [
@@ -62,7 +64,7 @@ function useBalances(address?: string) {
   return { balances, loading }
 }
 
-export function PaymentFlow({ ensName, prefilledAmount }: Props) {
+export function PaymentFlow({ ensName, prefilledAmount, invoiceId, invoiceMemo }: Props) {
   const { address, isConnected, chainId: walletChainId } = useAccount()
   const { sendTransactionAsync } = useSendTransaction()
   const { switchChainAsync } = useSwitchChain()
@@ -84,8 +86,11 @@ export function PaymentFlow({ ensName, prefilledAmount }: Props) {
   const [quoteError, setQuoteError] = useState<string | null>(null)
   const [yieldVault, setYieldVault] = useState<string | null>(null)
   const [useYieldRoute, setUseYieldRoute] = useState(false)
+  const [useV4Route, setUseV4Route] = useState(false)
   const [executing, setExecuting] = useState(false)
   const [txHash, setTxHash] = useState<string | null>(null)
+  const [executedProvider, setExecutedProvider] = useState<string | null>(null)
+  const [v4HookAddress, setV4HookAddress] = useState<string | null>(null)
   const [showOnramp, setShowOnramp] = useState(false)
 
   // Auto-select best balance when balances load
@@ -156,6 +161,7 @@ export function PaymentFlow({ ensName, prefilledAmount }: Props) {
           setQuote(data.routes[0])
           setYieldVault(data.yieldVault || null)
           setUseYieldRoute(data.useYieldRoute || false)
+          setUseV4Route(data.useV4Route || false)
         }
       } catch {}
     }, 500)
@@ -225,12 +231,23 @@ export function PaymentFlow({ ensName, prefilledAmount }: Props) {
       })
 
       setTxHash(hash)
+      setExecutedProvider(txData.provider || null)
+      setV4HookAddress(txData.hookAddress || null)
+
+      // Mark invoice as paid if this was an invoice payment
+      if (invoiceId && hash) {
+        fetch('/api/invoice', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: invoiceId, status: 'paid', txHash: hash }),
+        }).catch(() => {}) // Fire and forget
+      }
     } catch (e) {
       setQuoteError(e instanceof Error ? e.message : 'Payment failed')
     } finally {
       setExecuting(false)
     }
-  }, [address, recipientInfo, amount, quote, selectedChain, selectedToken, walletChainId, switchChainAsync, sendTransactionAsync, ensName, useYieldRoute, yieldVault, gasTankPayment])
+  }, [address, recipientInfo, amount, quote, selectedChain, selectedToken, walletChainId, switchChainAsync, sendTransactionAsync, ensName, useYieldRoute, yieldVault, gasTankPayment, invoiceId])
 
   // Loading state
   if (loading) {
@@ -257,6 +274,9 @@ export function PaymentFlow({ ensName, prefilledAmount }: Props) {
 
   // Success state
   if (txHash) {
+    const isV4Swap = executedProvider?.includes('Uniswap v4')
+    const txUrl = `${BLOCK_EXPLORERS[selectedChain] || BLOCK_EXPLORERS.base}/tx/${txHash}`
+
     return (
       <Card className="border-[#E4E2DC] bg-white max-w-md mx-auto">
         <CardContent className="p-6 text-center space-y-4">
@@ -269,15 +289,50 @@ export function PaymentFlow({ ensName, prefilledAmount }: Props) {
             <h2 className="text-xl font-semibold text-[#1C1B18]">Payment sent!</h2>
             <p className="text-sm text-[#6B6960] mt-1">{amount} {selectedToken} to {ensName}</p>
           </div>
+
+          {/* V4 Hook Badge */}
+          {isV4Swap && (
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FF007A]/10 text-[#FF007A] text-sm font-medium">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+                Swapped via Uniswap v4 Hook
+              </div>
+              {v4HookAddress && (
+                <a
+                  href={`${BLOCK_EXPLORERS[selectedChain] || BLOCK_EXPLORERS.base}/address/${v4HookAddress}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-xs text-[#6B6960] hover:text-[#FF007A] font-mono"
+                >
+                  PayAgentHook: {v4HookAddress.slice(0, 6)}...{v4HookAddress.slice(-4)}
+                </a>
+              )}
+            </div>
+          )}
+
           {txHash !== 'gas-tank' && (
-            <a
-              href={`${BLOCK_EXPLORERS[selectedChain] || BLOCK_EXPLORERS.base}/tx/${txHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-[#6B6960] hover:text-[#1C1B18] underline"
-            >
-              View transaction
-            </a>
+            <div className="space-y-2">
+              <a
+                href={txUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-sm text-[#6B6960] hover:text-[#1C1B18] underline"
+              >
+                View transaction
+              </a>
+              {isV4Swap && (
+                <a
+                  href={`${txUrl}#eventlog`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-sm text-[#FF007A] hover:text-[#FF007A]/80 underline"
+                >
+                  View hook events →
+                </a>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
@@ -298,7 +353,17 @@ export function PaymentFlow({ ensName, prefilledAmount }: Props) {
         <p className="text-sm text-[#6B6960] font-mono">
           {recipientInfo.address?.slice(0, 6)}...{recipientInfo.address?.slice(-4)}
         </p>
+        {invoiceId && (
+          <p className="text-xs text-[#9C9B93] mt-1">Invoice #{invoiceId.toUpperCase()}</p>
+        )}
       </div>
+
+      {/* Invoice Memo */}
+      {invoiceMemo && (
+        <div className="rounded-lg bg-[#F8F7F4] p-3 text-center">
+          <p className="text-sm text-[#1C1B18]">{invoiceMemo}</p>
+        </div>
+      )}
 
       <Card className="border-[#E4E2DC] bg-white">
         <CardContent className="p-5 space-y-4">
@@ -368,9 +433,19 @@ export function PaymentFlow({ ensName, prefilledAmount }: Props) {
 
           {/* Fee display */}
           {quote && (
-            <div className="flex items-center justify-between text-sm py-2">
-              <span className="text-[#6B6960]">Fee</span>
-              <span className="text-[#1C1B18]">{quote.fee}</span>
+            <div className="space-y-2 py-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[#6B6960]">Fee</span>
+                <span className="text-[#1C1B18]">{quote.fee}</span>
+              </div>
+              {useV4Route && (
+                <div className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md bg-[#FF007A]/10 text-[#FF007A] text-xs font-medium">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                  </svg>
+                  Powered by Uniswap v4
+                </div>
+              )}
             </div>
           )}
 

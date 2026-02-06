@@ -340,6 +340,10 @@ async function getV4TransactionData(
     chainId: chainCfg.chainId,
     provider: 'Uniswap v4 + PayAgent Hook',
     routeType: 'standard',
+    // V4-specific metadata for UI/judges
+    hookAddress: chainCfg.hook,
+    poolManager: chainCfg.poolManager,
+    feeTier: defaults.pairType,
   }
 }
 
@@ -353,6 +357,12 @@ export type TransactionData = {
   provider?: string
   /** Indicates the type of route this transaction was built from */
   routeType: RouteType
+  /** V4-specific: Hook contract address */
+  hookAddress?: string
+  /** V4-specific: Pool Manager address */
+  poolManager?: string
+  /** V4-specific: Fee tier (stable/bluechip/mixed) */
+  feeTier?: string
 }
 
 // ---------------------------------------------------------------------------

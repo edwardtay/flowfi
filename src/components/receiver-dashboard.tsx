@@ -7,6 +7,8 @@ import { QRCodeSVG } from 'qrcode.react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useGasTank } from '@/hooks/use-gas-tank'
+import { useClientEnsPreferences } from '@/hooks/use-client-ens'
+import { InvoiceModal } from '@/components/invoice-modal'
 
 // Vault options
 const VAULT_OPTIONS = [
@@ -31,56 +33,6 @@ type VaultPosition = {
   earned: string
 }
 
-type Subscription = {
-  id: string
-  payer: string
-  receiver: string
-  amount: string
-  frequency: 'weekly' | 'monthly'
-  nextDue: string
-  active: boolean
-}
-
-type AgentLog = {
-  type: string
-  receiver: string
-  details: Record<string, unknown>
-  timestamp: string
-}
-
-function useSubscriptions(address?: string) {
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (!address) { setSubscriptions([]); return }
-    setLoading(true)
-    fetch(`/api/agent/cron?action=subscriptions&receiver=${address}`)
-      .then((r) => r.json())
-      .then((data) => setSubscriptions(data.subscriptions ?? []))
-      .catch(() => setSubscriptions([]))
-      .finally(() => setLoading(false))
-  }, [address])
-
-  return { subscriptions, loading }
-}
-
-function useAgentLog() {
-  const [log, setLog] = useState<AgentLog[]>([])
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    setLoading(true)
-    fetch('/api/agent/cron?action=log')
-      .then((r) => r.json())
-      .then((data) => setLog(data.log ?? []))
-      .catch(() => setLog([]))
-      .finally(() => setLoading(false))
-  }, [])
-
-  return { log, loading }
-}
-
 function useEnsName(address?: string) {
   const [name, setName] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -98,30 +50,7 @@ function useEnsName(address?: string) {
   return { name, loading }
 }
 
-function useEnsPreferences(ensName: string | null) {
-  const [vault, setVault] = useState<string | null>(null)
-  const [strategy, setStrategy] = useState<string | null>(null)
-  const [avatar, setAvatar] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (!ensName) { setVault(null); setStrategy(null); setAvatar(null); return }
-    setLoading(true)
-    fetch(`/api/ens/resolve?name=${encodeURIComponent(ensName)}`)
-      .then((r) => r.json())
-      .then((data) => {
-        setVault(data.yieldVault ?? null)
-        setStrategy(data.strategy ?? null)
-        if (data.avatar) {
-          setAvatar(data.avatar.startsWith('ipfs://') ? `https://ipfs.io/ipfs/${data.avatar.slice(7)}` : data.avatar)
-        }
-      })
-      .catch(() => { setVault(null); setStrategy(null); setAvatar(null) })
-      .finally(() => setLoading(false))
-  }, [ensName])
-
-  return { vault, strategy, avatar, loading }
-}
+// Replaced server-side useEnsPreferences with client-side useClientEnsPreferences from hooks/use-client-ens.ts
 
 function useReceipts(address?: string) {
   const [receipts, setReceipts] = useState<Receipt[]>([])
@@ -170,12 +99,10 @@ export function ReceiverDashboard() {
   const { sendTransactionAsync } = useSendTransaction()
   const { switchChainAsync } = useSwitchChain()
   const { name: ensName, loading: ensLoading } = useEnsName(address)
-  const { vault: currentVault, strategy: currentStrategy, avatar: ensAvatar, loading: prefsLoading } = useEnsPreferences(ensName)
+  const { vault: currentVault, strategy: currentStrategy, avatar: ensAvatar, loading: prefsLoading } = useClientEnsPreferences(ensName)
   const { receipts, loading: receiptsLoading } = useReceipts(address)
   const { position: vaultPosition, loading: positionLoading } = useVaultPosition(currentVault ?? undefined, address)
   const gasTank = useGasTank()
-  const { subscriptions, loading: subsLoading } = useSubscriptions(address)
-  const { log: agentLog } = useAgentLog()
 
   const [showSettings, setShowSettings] = useState(false)
   const [depositAmount, setDepositAmount] = useState('0.005')
@@ -186,6 +113,7 @@ export function ReceiverDashboard() {
   const [saveTxHash, setSaveTxHash] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false)
 
   // Sync with current preferences
   useEffect(() => {
@@ -357,6 +285,16 @@ export function ReceiverDashboard() {
                   Share
                 </Button>
               </div>
+              <Button
+                onClick={() => setShowInvoiceModal(true)}
+                variant="outline"
+                className="w-full h-9 text-sm border-[#E4E2DC] mt-2"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="mr-1.5">
+                  <path d="M9 14L11 16L15 12M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Request Payment
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -451,77 +389,6 @@ export function ReceiverDashboard() {
             <p className="text-xs text-[#E65100] mt-3 pt-3 border-t border-[#E4E2DC]">
               Gas tank empty - add funds to enable gasless payments
             </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Active Subscriptions */}
-      <Card className="border-[#E4E2DC] bg-white">
-        <CardContent className="p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-[#1C1B18]">Subscriptions</h2>
-            <div className="flex items-center gap-2 text-xs text-[#22C55E]">
-              <div className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" />
-              AI Agent Active
-            </div>
-          </div>
-          {subsLoading ? (
-            <div className="space-y-2">
-              {[1, 2].map(i => <div key={i} className="h-12 bg-[#F8F7F4] rounded-lg animate-pulse" />)}
-            </div>
-          ) : subscriptions.length === 0 ? (
-            <div className="text-center py-6">
-              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[#F8F7F4] flex items-center justify-center">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-[#9C9B93]">
-                  <path d="M12 2V6M12 18V22M6 12H2M22 12H18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-              </div>
-              <p className="text-[#6B6960]">No active subscriptions</p>
-              <p className="text-sm text-[#9C9B93] mt-1">Share your link to get recurring payments</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {subscriptions.filter(s => s.active).map((sub) => (
-                <div key={sub.id} className="flex items-center justify-between p-3 rounded-lg bg-[#FAFAF8]">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#EDE9FE] flex items-center justify-center">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-[#7C3AED]">
-                        <path d="M12 2V6M12 18V22M6 12H2M22 12H18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-[#1C1B18]">
-                        {sub.payer.slice(0, 6)}...{sub.payer.slice(-4)}
-                      </p>
-                      <p className="text-xs text-[#6B6960]">
-                        {sub.frequency} · Next: {new Date(sub.nextDue).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="font-medium text-[#1C1B18]">${sub.amount}</p>
-                </div>
-              ))}
-            </div>
-          )}
-          {/* Agent activity log */}
-          {agentLog.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-[#E4E2DC]">
-              <p className="text-xs text-[#9C9B93] mb-2">Recent AI Agent Activity</p>
-              <div className="space-y-1">
-                {agentLog.slice(-3).reverse().map((entry, i) => (
-                  <div key={i} className="text-xs text-[#6B6960] flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
-                    {entry.type === 'subscription_executed' && 'Processed subscription'}
-                    {entry.type === 'tank_check' && 'Checked gas tank'}
-                    {entry.type === 'tank_low' && 'Low tank alert'}
-                    {entry.type === 'refill_initiated' && 'Initiated refill'}
-                    <span className="text-[#9C9B93]">
-                      {new Date(entry.timestamp).toLocaleTimeString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
           )}
         </CardContent>
       </Card>
@@ -720,6 +587,14 @@ export function ReceiverDashboard() {
           </CardContent>
         </Card>
       )}
+
+      {/* Invoice Modal */}
+      <InvoiceModal
+        isOpen={showInvoiceModal}
+        onClose={() => setShowInvoiceModal(false)}
+        receiverAddress={address || ''}
+        receiverEns={ensName || undefined}
+      />
     </div>
   )
 }
