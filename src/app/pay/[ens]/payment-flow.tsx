@@ -123,6 +123,7 @@ export function PaymentFlow({ ensName, prefilledAmount }: Props) {
     if (recipientInfo?.address && selectedChain === 'base' && selectedToken === 'USDC') {
       gasTankPayment.checkReceiver(recipientInfo.address as Address)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recipientInfo?.address, selectedChain, selectedToken])
 
   // Fetch quote

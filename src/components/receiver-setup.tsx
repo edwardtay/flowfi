@@ -57,7 +57,7 @@ export function ReceiverSetup({ ensName, onComplete }: Props) {
           </div>
 
           <div>
-            <h2 className="text-xl font-semibold text-[#1C1B18]">You're live!</h2>
+            <h2 className="text-xl font-semibold text-[#1C1B18]">You&apos;re live!</h2>
             <p className="text-sm text-[#6B6960] mt-1">Share your link to get paid.</p>
           </div>
 
