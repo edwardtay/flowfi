@@ -52,21 +52,22 @@ export default function HomePage() {
 
       {/* Hero */}
       <main className="flex-1 flex items-center justify-center px-6">
-        <div className="max-w-xl text-center py-20">
+        <div className="max-w-2xl text-center py-12">
+          {/* Main headline */}
           <h1 className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl text-[#1C1B18] mb-4 leading-tight">
-            Get paid in any token.<br />Earn yield automatically.
+            One link. Any crypto.<br />Auto-compounding.
           </h1>
-          <p className="text-[#6B6A63] mb-8">
-            Share your payment link. Accept any token from any chain.<br />
-            <span className="text-[#1C1B18]">Auto-converts to USDC and deposits to DeFi.</span>
+          <p className="text-lg text-[#6B6A63] mb-8 max-w-lg mx-auto">
+            Why let payments sit idle? Every dollar you receive starts earning immediately.
           </p>
+
           <ConnectButton.Custom>
             {({ openConnectModal }) => (
               <button
                 onClick={openConnectModal}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-[#1C1B18] text-[#F8F7F4] font-medium rounded-xl hover:bg-[#2D2C28] transition-all cursor-pointer"
               >
-                Get Your Payment Link
+                Create Your Payment Link
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="opacity-60">
                   <path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
@@ -74,21 +75,21 @@ export default function HomePage() {
             )}
           </ConnectButton.Custom>
 
-          {/* How it works */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mt-12 text-sm">
+          {/* Benefits - compact */}
+          <div className="flex items-center justify-center gap-8 mt-10 text-sm">
             <div className="text-center">
-              <p className="font-semibold text-[#1C1B18]">9+ chains supported</p>
-              <p className="text-[#9C9B93]">Cross-chain routing</p>
+              <p className="font-semibold text-[#1C1B18]">Any token, 9 chains</p>
+              <p className="text-[#9C9B93]">You receive USDC</p>
             </div>
-            <div className="hidden sm:block w-px h-8 bg-[#E4E2DC]" />
+            <div className="w-px h-8 bg-[#E4E2DC]" />
             <div className="text-center">
               <p className="font-semibold text-[#22C55E]">4-8% APY</p>
-              <p className="text-[#9C9B93]">Aave · Morpho · Renzo</p>
+              <p className="text-[#9C9B93]">Auto-compounding</p>
             </div>
-            <div className="hidden sm:block w-px h-8 bg-[#E4E2DC]" />
+            <div className="w-px h-8 bg-[#E4E2DC]" />
             <div className="text-center">
-              <p className="font-semibold text-[#1C1B18]">Your ENS = config</p>
-              <p className="text-[#9C9B93]">Preferences on-chain</p>
+              <p className="font-semibold text-[#1C1B18]">One link</p>
+              <p className="text-[#9C9B93]">No setup for payers</p>
             </div>
           </div>
         </div>
