@@ -64,7 +64,7 @@ export function ReceiverSetup({ ensName, onComplete }: Props) {
 
           <div className="rounded-lg bg-[#F8F7F4] p-4">
             <p className="font-mono text-[#1C1B18] break-all">
-              flowfi.xyz/pay/{ensName || address?.slice(0, 10)}
+              ensio-pay.vercel.app/pay/{ensName || address?.slice(0, 10)}
             </p>
           </div>
 
