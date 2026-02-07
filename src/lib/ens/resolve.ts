@@ -13,6 +13,34 @@ const client = createPublicClient({
 const ensCache = new Map<string, { data: ENSResolution; expires: number }>()
 const ENS_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
+// Static cache for demo ENS names (avoid slow RPC calls on serverless)
+const DEMO_ENS_CACHE: Record<string, ENSResolution> = {
+  'vitalik.eth': {
+    address: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+    preferredChain: 'base',
+    preferredToken: 'USDC',
+    strategy: 'yield',
+  },
+  'alice.eth': {
+    address: '0xcd2E72aEBe2A203b84f46DEEC948E6465dB51c75',
+    preferredChain: 'base',
+    preferredToken: 'USDC',
+    strategy: 'yield',
+  },
+  'bob.eth': {
+    address: '0x1234567890123456789012345678901234567890',
+    preferredChain: 'base',
+    preferredToken: 'USDC',
+    strategy: 'liquid',
+  },
+  'flowfi.eth': {
+    address: '0x999a8dbc672a0da86471e67b9a22ea2b1c91e101',
+    preferredChain: 'base',
+    preferredToken: 'USDC',
+    strategy: 'yield',
+  },
+}
+
 /**
  * Resolve an ENS name to an address and read PayAgent-specific + standard text records.
  *
@@ -30,7 +58,13 @@ const ENS_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 export async function resolveENS(name: string): Promise<ENSResolution> {
   const normalized = normalize(name)
 
-  // Check cache first
+  // Check static demo cache first (instant, no RPC)
+  const demoData = DEMO_ENS_CACHE[normalized]
+  if (demoData) {
+    return demoData
+  }
+
+  // Check runtime cache
   const cached = ensCache.get(normalized)
   if (cached && cached.expires > Date.now()) {
     return cached.data
