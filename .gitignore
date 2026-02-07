@@ -86,3 +86,9 @@ contracts/test/
 # MCP server
 src/mcp/
 .env*.local
+
+# Private / sensitive
+/private/
+scripts/test-*.ts
+*.secret
+*.key
