@@ -44,6 +44,7 @@ type TokenBalance = {
 function useBalances(address?: string) {
   const [balances, setBalances] = useState<TokenBalance[]>([])
   const [loading, setLoading] = useState(false)
+  const [ethPrice, setEthPrice] = useState(2500)
 
   useEffect(() => {
     if (!address) {
@@ -54,19 +55,22 @@ function useBalances(address?: string) {
     setLoading(true)
     fetch(`/api/balances?address=${address}`)
       .then((r) => r.json())
-      .then((data) => setBalances(data.balances || []))
+      .then((data) => {
+        setBalances(data.balances || [])
+        if (data.ethPrice) setEthPrice(data.ethPrice)
+      })
       .catch(() => setBalances([]))
       .finally(() => setLoading(false))
   }, [address])
 
-  return { balances, loading }
+  return { balances, loading, ethPrice }
 }
 
 export function PaymentFlow({ ensName, prefilledAmount, invoiceId, invoiceMemo }: Props) {
   const { address, isConnected, chainId: walletChainId } = useAccount()
   const { sendTransactionAsync } = useSendTransaction()
   const { switchChainAsync } = useSwitchChain()
-  const { balances, loading: balancesLoading } = useBalances(address)
+  const { balances, loading: balancesLoading, ethPrice } = useBalances(address)
   const gasTankPayment = useGasTankPayment()
 
   const [amount, setAmount] = useState(prefilledAmount || '')
@@ -362,9 +366,11 @@ export function PaymentFlow({ ensName, prefilledAmount, invoiceId, invoiceMemo }
     b.chain.toLowerCase() === SUPPORTED_CHAINS.find(c => c.id === selectedChain)?.name.toLowerCase()
   )
 
-  // Calculate USD value of input amount
-  const inputUsdValue = selectedBalance && amount && parseFloat(amount) > 0
-    ? (selectedBalance.balanceUSD / parseFloat(selectedBalance.balance)) * parseFloat(amount)
+  // Calculate USD value of input amount using CoinGecko price for ETH
+  const inputUsdValue = amount && parseFloat(amount) > 0
+    ? selectedToken === 'ETH'
+      ? parseFloat(amount) * ethPrice
+      : parseFloat(amount) // Stablecoins = $1
     : 0
   const receiverUsdValue = inputUsdValue * (1 - (parseFloat(feeTier?.feePercent || '0.15') / 100))
 

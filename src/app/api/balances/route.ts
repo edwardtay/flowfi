@@ -2,6 +2,29 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createPublicClient, http, erc20Abi, type Address, formatUnits } from 'viem'
 import { base, mainnet, arbitrum, optimism, polygon, avalanche, bsc, zkSync, linea } from 'viem/chains'
 
+// Cached ETH price (refresh every 5 min)
+let cachedEthPrice = 2500
+let priceLastFetched = 0
+const PRICE_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
+async function getEthPrice(): Promise<number> {
+  if (Date.now() - priceLastFetched < PRICE_CACHE_TTL) {
+    return cachedEthPrice
+  }
+  try {
+    const res = await fetch(
+      'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd',
+      { next: { revalidate: 300 } }
+    )
+    const data = await res.json()
+    cachedEthPrice = data.ethereum?.usd || 2500
+    priceLastFetched = Date.now()
+    return cachedEthPrice
+  } catch {
+    return cachedEthPrice // Fallback to cached/default
+  }
+}
+
 // LI.FI supported chains with token addresses
 const CHAIN_CONFIGS = [
   { id: 8453, name: 'base', chain: base, rpc: 'https://mainnet.base.org' },
@@ -85,8 +108,7 @@ export async function GET(req: NextRequest) {
         const ethBalance = await client.getBalance({ address: address as Address })
         if (ethBalance > BigInt(0)) {
           const formatted = formatUnits(ethBalance, 18)
-          // Approximate ETH price ~$2500 (could fetch from price API)
-          const ethPrice = 2500
+          const ethPrice = await getEthPrice()
           const usdValue = parseFloat(formatted) * ethPrice
 
           if (usdValue >= 0.01) {
@@ -146,7 +168,10 @@ export async function GET(req: NextRequest) {
     // Sort by USD value descending
     balances.sort((a, b) => b.balanceUSD - a.balanceUSD)
 
-    return NextResponse.json({ balances })
+    // Include ETH price for frontend calculations
+    const ethPrice = await getEthPrice()
+
+    return NextResponse.json({ balances, ethPrice })
   } catch (error) {
     console.error('Balance fetch error:', error)
     return NextResponse.json({ error: 'Failed to fetch balances' }, { status: 500 })
