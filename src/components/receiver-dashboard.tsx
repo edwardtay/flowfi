@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useGasTank } from '@/hooks/use-gas-tank'
 import { useClientEnsPreferences } from '@/hooks/use-client-ens'
-import { InvoiceModal } from '@/components/invoice-modal'
 
 // AI Agent simulation result type
 type AgentSimulation = {
@@ -154,7 +153,6 @@ export function ReceiverDashboard() {
   const [saveTxHash, setSaveTxHash] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
-  const [showInvoiceModal, setShowInvoiceModal] = useState(false)
 
   // Sync with current preferences
   useEffect(() => {
@@ -708,13 +706,6 @@ export function ReceiverDashboard() {
         </Card>
       )}
 
-      {/* Invoice Modal */}
-      <InvoiceModal
-        isOpen={showInvoiceModal}
-        onClose={() => setShowInvoiceModal(false)}
-        receiverAddress={address || ''}
-        receiverEns={ensName || undefined}
-      />
     </div>
   )
 }
