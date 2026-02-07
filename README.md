@@ -83,7 +83,7 @@ Payer (any chain, any token)
 
 | Contract | Address | Purpose |
 |----------|---------|---------|
-| VaultRouter | `0x949F88b804Fae2b09A1Be919998255587F7A15fB` | ERC-4626 vault deposits |
+| Morpho Spark Vault | `0x7BfA7C4f149E7415b73bdeDfe609237e29CBF34A` | USDC yield destination |
 | PoolManager | `0x498581fF718922c3f8e6A244956aF099B2652b2b` | Uniswap v4 core |
 
 ## Verified Transactions
