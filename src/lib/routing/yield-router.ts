@@ -1,4 +1,4 @@
-import { getContractCallsQuote, type ContractCallsQuoteRequest } from '@lifi/sdk'
+import { getContractCallsQuote, getQuote, type ContractCallsQuoteRequest } from '@lifi/sdk'
 import { encodeFunctionData } from 'viem'
 import type { RouteOption } from '@/lib/types'
 import { CHAIN_MAP, getTokenAddress, getTokenDecimals } from './tokens'
@@ -88,7 +88,27 @@ export async function getYieldRouteQuote(
   if (cached) return cached
 
   try {
-    // Build the destination call data for YieldRouter.depositToYield
+    // Step 1: Get a regular quote first to estimate the USDC output
+    const estimateQuote = await getQuote({
+      fromAddress: params.fromAddress as `0x${string}`,
+      fromChain: fromChainId,
+      fromToken: fromTokenAddr,
+      fromAmount: amountWei,
+      toChain: toChainId,
+      toToken: toTokenAddr,
+      slippage: params.slippage || 0.005,
+    })
+
+    // Get the estimated output amount in USDC (6 decimals)
+    const estimatedUsdcOutput = estimateQuote.estimate?.toAmount || '0'
+
+    // Apply slippage buffer to the amount we encode in calldata
+    const slippageFactor = 1 - (params.slippage || 0.005)
+    const minUsdcOutput = BigInt(
+      Math.floor(Number(estimatedUsdcOutput) * slippageFactor)
+    )
+
+    // Step 2: Build the destination call data with the correct USDC amount
     const callData = encodeFunctionData({
       abi: YIELD_ROUTER_ABI,
       functionName: 'depositToYield',
@@ -96,21 +116,21 @@ export async function getYieldRouteQuote(
         params.recipient as `0x${string}`,
         params.vault as `0x${string}`,
         toTokenAddr as `0x${string}`,
-        BigInt(amountWei),
+        minUsdcOutput, // Now in USDC decimals (6)
       ],
     })
 
-    // Get quote with contract call
+    // Step 3: Get contract calls quote with correctly encoded amount
     const quoteRequest: ContractCallsQuoteRequest = {
       fromAddress: params.fromAddress as `0x${string}`,
       fromChain: fromChainId,
       fromToken: fromTokenAddr,
+      fromAmount: amountWei,
       toChain: toChainId,
       toToken: toTokenAddr,
-      toAmount: amountWei,
       contractCalls: [
         {
-          fromAmount: amountWei,
+          fromAmount: minUsdcOutput.toString(), // Amount in USDC to use for the call
           fromTokenAddress: toTokenAddr,
           toContractAddress: YIELD_ROUTER_ADDRESS,
           toContractCallData: callData,

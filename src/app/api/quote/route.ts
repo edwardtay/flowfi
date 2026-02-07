@@ -205,6 +205,7 @@ export async function POST(req: NextRequest) {
     }
 
     // --- YIELD ROUTE: If recipient has vault (and not restaking), use Contract Calls for atomic deposit ---
+    let yieldRouteError: string | undefined
     if (isYieldRouteEnabled(yieldVault) && !isRestakingStrategy(ensStrategy)) {
       const yieldResult = await getYieldRouteQuote({
         fromAddress: userAddress,
@@ -219,6 +220,7 @@ export async function POST(req: NextRequest) {
       if ('error' in yieldResult) {
         // Fall back to standard routes if yield route fails
         console.warn('Yield route failed, falling back to standard:', yieldResult.error)
+        yieldRouteError = yieldResult.error
       } else {
         // Yield route found - this bridges + deposits in ONE tx
         allRoutes = [yieldResult.route]
@@ -334,6 +336,7 @@ export async function POST(req: NextRequest) {
       toToken: finalToToken,
       yieldVault: yieldVault || null,
       useYieldRoute: false,
+      yieldRouteError: typeof yieldRouteError !== 'undefined' ? yieldRouteError : undefined,
       useV4Route,
       // Multi-strategy allocation info
       strategyAllocations: strategyAllocations.length > 1 ? strategyAllocations : undefined,
