@@ -100,19 +100,25 @@ export function PaymentFlow({ ensName, prefilledAmount, invoiceId, invoiceMemo }
   const [v4HookAddress, setV4HookAddress] = useState<string | null>(null)
   const [showOnramp, setShowOnramp] = useState(false)
 
-  // Auto-select best balance when balances load
+  // Filter balances to only supported chains
+  const supportedChainNames = SUPPORTED_CHAINS.map(c => c.name.toLowerCase())
+  const filteredBalances = balances.filter(b => supportedChainNames.includes(b.chain.toLowerCase()))
+
+  // Auto-select best balance ONCE when balances first load
+  const [hasAutoSelected, setHasAutoSelected] = useState(false)
   useEffect(() => {
-    if (balances.length > 0 && !showOptions) {
+    if (filteredBalances.length > 0 && !hasAutoSelected) {
       // Prefer USDC on Base, otherwise highest USD balance
-      const usdcBase = balances.find(b => b.token === 'USDC' && b.chain.toLowerCase() === 'base')
-      const best = usdcBase || balances[0]
+      const usdcBase = filteredBalances.find(b => b.token === 'USDC' && b.chain.toLowerCase() === 'base')
+      const best = usdcBase || filteredBalances[0]
       if (best) {
         setSelectedToken(best.token)
         const chain = SUPPORTED_CHAINS.find(c => c.name.toLowerCase() === best.chain.toLowerCase())
         setSelectedChain(chain?.id || 'base')
+        setHasAutoSelected(true)
       }
     }
-  }, [balances, showOptions])
+  }, [filteredBalances, hasAutoSelected])
 
   // Fetch recipient ENS info
   useEffect(() => {
@@ -351,7 +357,7 @@ export function PaymentFlow({ ensName, prefilledAmount, invoiceId, invoiceMemo }
   }
 
   const canPay = amount && parseFloat(amount) > 0 && quote && !executing
-  const selectedBalance = balances.find(b =>
+  const selectedBalance = filteredBalances.find(b =>
     b.token === selectedToken &&
     b.chain.toLowerCase() === SUPPORTED_CHAINS.find(c => c.id === selectedChain)?.name.toLowerCase()
   )
@@ -411,9 +417,9 @@ export function PaymentFlow({ ensName, prefilledAmount, invoiceId, invoiceMemo }
           )}
 
           {/* Expandable options */}
-          {showOptions && balances.length > 0 && (
+          {showOptions && filteredBalances.length > 0 && (
             <div className="space-y-2 pt-2 border-t border-[#E4E2DC]">
-              {balances.slice(0, 5).map((bal) => {
+              {filteredBalances.slice(0, 5).map((bal) => {
                 const chain = SUPPORTED_CHAINS.find(c => c.name.toLowerCase() === bal.chain.toLowerCase())
                 const isSelected = selectedToken === bal.token && selectedChain === chain?.id
                 return (
@@ -447,7 +453,7 @@ export function PaymentFlow({ ensName, prefilledAmount, invoiceId, invoiceMemo }
             <div className="rounded-lg bg-[#F8F7F4] p-3 space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-[#6B6960]">You send</span>
-                <span className="text-[#1C1B18] font-medium">{parseFloat(amount).toFixed(2)} {selectedToken}</span>
+                <span className="text-[#1C1B18] font-medium">{amount} {selectedToken}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-[#6B6960]">Network + routing</span>
@@ -465,7 +471,7 @@ export function PaymentFlow({ ensName, prefilledAmount, invoiceId, invoiceMemo }
               <div className="border-t border-[#E4E2DC] pt-2 flex items-center justify-between text-sm">
                 <span className="text-[#6B6960]">{ensName} receives</span>
                 <span className="text-[#22C55E] font-semibold">
-                  ~{(parseFloat(amount) * (1 - (parseFloat(feeTier?.feePercent || '0.1') / 100))).toFixed(2)} USDC
+                  ~{(parseFloat(amount) * (1 - (parseFloat(feeTier?.feePercent || '0.15') / 100))).toFixed(6).replace(/\.?0+$/, '')} USDC
                 </span>
               </div>
               {/* Fee comparison */}
@@ -486,9 +492,6 @@ export function PaymentFlow({ ensName, prefilledAmount, invoiceId, invoiceMemo }
                   Swapped via Uniswap v4
                 </div>
               )}
-              <p className="text-xs text-[#9C9B93] text-center pt-1">
-                Lower than Coinbase (1.5%) or PayPal (2.9%)
-              </p>
             </div>
           )}
 
@@ -530,7 +533,7 @@ export function PaymentFlow({ ensName, prefilledAmount, invoiceId, invoiceMemo }
                   {gasTankPayment.status === 'signing' ? 'Sign in wallet...' : 'Sending...'}
                 </span>
               ) : amount && parseFloat(amount) > 0 ? (
-                `Pay ${parseFloat(amount).toFixed(2)} ${selectedToken}`
+                `Pay ${amount} ${selectedToken}`
               ) : (
                 'Enter amount'
               )}
