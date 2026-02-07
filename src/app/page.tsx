@@ -55,10 +55,10 @@ export default function HomePage() {
         <div className="max-w-2xl text-center py-12">
           {/* Main headline */}
           <h1 className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl text-[#1C1B18] mb-4 leading-tight">
-            One link for all payments.<br /><span className="text-[#22C55E]">Earn yield while you wait.</span>
+            One link for all payments.<br /><span className="text-[#22C55E]">Earn yield when funds arrive.</span>
           </h1>
           <p className="text-lg text-[#6B6A63] mb-8 max-w-lg mx-auto">
-            Clients pay in any token, any chain. You receive USDC earning 5% APY.
+            Clients pay in any token, any chain. You receive USDC earning 5% APY — pre-configured via ENS.
           </p>
 
           <ConnectButton.Custom>
@@ -127,10 +127,9 @@ export default function HomePage() {
           <div className="mt-10 pt-8 border-t border-[#E4E2DC]">
             <p className="text-xs text-[#9C9B93] mb-4">BUILT FOR</p>
             <div className="flex items-center justify-center gap-4 text-sm flex-wrap">
-              <span className="px-3 py-1.5 rounded-full bg-[#F8F7F4] text-[#1C1B18]">Freelancers</span>
               <span className="px-3 py-1.5 rounded-full bg-[#F8F7F4] text-[#1C1B18]">Creators</span>
-              <span className="px-3 py-1.5 rounded-full bg-[#F8F7F4] text-[#1C1B18]">Agencies</span>
-              <span className="px-3 py-1.5 rounded-full bg-[#F8F7F4] text-[#1C1B18]">DAO Contributors</span>
+              <span className="px-3 py-1.5 rounded-full bg-[#F8F7F4] text-[#1C1B18]">Freelancers</span>
+              <span className="px-3 py-1.5 rounded-full bg-[#F8F7F4] text-[#1C1B18]">Non-profits</span>
             </div>
           </div>
         </div>
