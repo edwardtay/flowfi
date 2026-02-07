@@ -1,15 +1,15 @@
 # ENSIO
 
-Accept crypto payments with just your ENS name. Any token, any chain.
+Accept crypto payments with just your ENS name. Any token, any chain. Payment preferences stored directly in your ENS records.
 
 **Live:** https://ensio-pay.vercel.app
 
 ## How It Works
 
 1. **Connect wallet** — Your ENS name becomes your payment link
-2. **Set preferences** — Choose token (USDC/USDT/ETH), chain, and yield option
+2. **Set preferences** — Choose token, chain, and yield option (saved to ENS)
 3. **Share link** — `ensio-pay.vercel.app/pay/yourname.eth`
-4. **Get paid** — Anyone pays with any token, it auto-converts to your preference
+4. **Get paid** — Anyone pays with any token, auto-converts per your ENS config
 
 ## Features
 
@@ -22,8 +22,12 @@ Payers can send from 9+ chains (Ethereum, Base, Arbitrum, Optimism, Polygon...).
 ### Yield Option
 Opt-in to auto-deposit payments to Morpho Spark USDC vault on Base (~5% APY). Your money grows while you sleep.
 
-### ENS-Based Preferences
-Your payment config is stored on-chain in ENS:
+### ENS Records as Payment Config
+
+Your payment preferences are stored directly in your ENS name's text records — no separate database needed.
+
+**ENS Record:** `com.pay.config`
+
 ```json
 {
   "version": "1.0",
@@ -34,6 +38,14 @@ Your payment config is stored on-chain in ENS:
   }
 }
 ```
+
+| Field | Description |
+|-------|-------------|
+| `token` | Preferred token: USDC, USDT, or ETH |
+| `chain` | Destination chain ID (8453 = Base) |
+| `vault` | Optional ERC-4626 vault for yield |
+
+When someone pays you, ENSIO reads your ENS records and routes payments accordingly.
 
 ## Payment Flow
 
